@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Reading Arena Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-purple: #bc13fe;
+            --neon-green: #0aff00;
+        }
+        body { 
+            font-family: 'Tiro Devanagari Hindi', serif; 
+            background-color: #000000;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+        .gaming-font { font-family: 'Rajdhani', sans-serif; }
+        
+        /* Deep Dark Neon Box */
+        .neon-box {
+            background: rgba(5, 5, 10, 0.95);
+            border: 1px solid #1f2937;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 1), inset 0 0 50px rgba(0,0,0,0.8);
+        }
+        
+        .word-card { 
+            text-shadow: 0 0 10px rgba(255,255,255,0.3);
+        }
+
+        /* Floating Score Animation */
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+        .floating-score {
+            position: absolute;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: bold;
+            font-size: 3rem;
+            animation: floatUp 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-900 via-black to-black">
+
+    <div class="w-full max-w-6xl h-[90vh] neon-box rounded-none md:rounded-3xl flex flex-col relative border-t-4 border-t-purple-600">
+        
+        <header class="bg-black/50 p-4 border-b border-gray-800 flex justify-between items-center backdrop-blur-md z-20">
+            <div class="flex items-center gap-3">
+                <div class="h-3 w-3 bg-red-600 rounded-full animate-ping"></div>
+                <h1 class="text-2xl font-bold text-gray-100 tracking-widest gaming-font uppercase">Reading Arena <span class="text-purple-500">PRO</span></h1>
+            </div>
+            <div id="controlsHint" class="text-xs font-mono text-gray-500 border border-gray-800 px-3 py-1 rounded">
+                LOBBY PHASE
+            </div>
+        </header>
+
+        <div id="lobbyScreen" class="flex-1 flex flex-col items-center justify-center p-8 z-10">
+            <h2 class="text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 gaming-font">TOURNAMENT SETUP</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-8">
+                <div class="bg-gray-900/80 p-6 border border-gray-800 rounded-xl">
+                    <label class="block text-purple-400 text-sm font-bold mb-2 uppercase tracking-wider">1. Game Mode</label>
+                    <select id="gameMode" class="w-full bg-black border border-gray-700 text-white p-3 rounded mb-4 focus:border-purple-500 outline-none">
+                        <option value="word">Word Rapid Fire (शब्द - तेज़ गति)</option>
+                        <option value="sentence">Sentence Flow (पूरा वाक्य - 10 नंबर)</option>
+                    </select>
+
+                    <label class="block text-purple-400 text-sm font-bold mb-2 uppercase tracking-wider">2. Content</label>
+                    <select id="topicSelect" class="w-full bg-black border border-gray-700 text-white p-3 rounded focus:border-purple-500 outline-none">
+                        <option value="para1">🔥 सम्राट का उत्सव (Heavy Words)</option>
+                        <option value="para2">⚡ टंग ट्विस्टर्स (Tongue Twisters)</option>
+                    </select>
+                </div>
+
+                <div class="bg-gray-900/80 p-6 border border-gray-800 rounded-xl flex flex-col">
+                    <label class="block text-blue-400 text-sm font-bold mb-2 uppercase tracking-wider">3. Add Players</label>
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="playerNameInput" placeholder="Enter Name..." class="flex-1 bg-black border border-gray-700 text-white p-3 rounded focus:border-blue-500 outline-none">
+                        <button onclick="addPlayer()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded font-bold transition">ADD</button>
+                    </div>
+                    <div class="flex-1 bg-black border border-gray-800 rounded p-2 overflow-y-auto h-32" id="playerList">
+                        <p class="text-gray-600 text-center text-sm mt-4">Waiting for players...</p>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startTournament()" id="startBtn" class="px-12 py-4 bg-gradient-to-r from-purple-700 to-pink-700 text-white font-bold text-xl rounded-full shadow-[0_0_20px_rgba(168,85,247,0.5)] opacity-50 cursor-not-allowed hover:scale-105 transition-transform" disabled>
+                INITIATE SYSTEM 🚀
+            </button>
+        </div>
+
+        <div id="readyScreen" class="hidden absolute inset-0 bg-black/95 z-30 flex flex-col items-center justify-center text-center">
+            <h3 class="text-gray-500 text-xl gaming-font tracking-[0.5em] mb-4">NEXT PLAYER</h3>
+            <h1 id="nextPlayerName" class="text-7xl font-bold text-white mb-10 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">PLAYER</h1>
+            <button onclick="startTurn()" class="px-10 py-5 border-2 border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold text-2xl rounded transition-all shadow-[0_0_15px_rgba(34,197,94,0.4)] gaming-font">
+                START ROUND
+            </button>
+            <div class="mt-8 text-gray-400 font-mono bg-gray-900 px-4 py-2 rounded border border-gray-700">
+                <span id="instructionText">Controls info will appear here</span>
+            </div>
+        </div>
+
+        <div id="gameScreen" class="hidden flex-1 flex flex-col relative">
+            <div class="flex justify-between items-end px-8 py-4">
+                <div>
+                    <div class="text-xs text-gray-500 uppercase">Player</div>
+                    <div id="activePlayerName" class="text-2xl font-bold text-blue-400">Name</div>
+                </div>
+                <div class="absolute left-1/2 transform -translate-x-1/2 top-4 flex flex-col items-center">
+                    <div class="text-xs text-gray-600 uppercase tracking-widest">TIME LEFT</div>
+                    <div id="visualTimer" class="text-5xl font-mono font-bold text-white tabular-nums drop-shadow-[0_0_8px_rgba(255,255,255,0.8)]">0.0</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-xs text-gray-500 uppercase">Score</div>
+                    <div id="currentScore" class="text-4xl font-bold text-yellow-400 gaming-font">0</div>
+                </div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center relative px-8">
+                <div id="contentDisplay" class="text-center font-bold text-gray-200 transition-all duration-300 select-none">
+                    Ready...
+                </div>
+                
+                <div id="feedbackLayer" class="absolute inset-0 pointer-events-none z-0"></div>
+            </div>
+
+            <div class="h-2 bg-gray-900 w-full mt-auto">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 w-full"></div>
+            </div>
+        </div>
+
+        <div id="roundResultScreen" class="hidden absolute inset-0 bg-black/90 backdrop-blur-lg z-40 flex flex-col items-center justify-center">
+            <div class="bg-gray-900 p-8 rounded-2xl border border-gray-700 text-center w-full max-w-md shadow-2xl">
+                <h2 class="text-2xl text-gray-400 mb-2 gaming-font">MISSION REPORT</h2>
+                <h1 id="roundPlayerName" class="text-4xl font-bold text-white mb-6">-</h1>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-black p-4 rounded border border-gray-800">
+                        <div class="text-xs text-gray-500">ACCURACY SCORE</div>
+                        <div id="roundScore" class="text-3xl font-bold text-green-400">0</div>
+                    </div>
+                    <div class="bg-black p-4 rounded border border-gray-800">
+                        <div class="text-xs text-gray-500">ITEMS READ</div>
+                        <div id="roundItems" class="text-3xl font-bold text-blue-400">0</div>
+                    </div>
+                </div>
+
+                <button onclick="nextPlayer()" id="nextBtn" class="w-full py-4 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded text-lg transition">
+                    NEXT AGENT ⏭
+                </button>
+            </div>
+        </div>
+
+        <div id="finalBoard" class="hidden absolute inset-0 bg-black z-50 p-8 overflow-y-auto">
+            <h1 class="text-5xl text-center font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-yellow-600 mb-10 gaming-font">LEADERBOARD</h1>
+            <div class="max-w-4xl mx-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-gray-500 border-b border-gray-800 text-sm uppercase">
+                            <th class="p-4">Rank</th>
+                            <th class="p-4">Agent Name</th>
+                            <th class="p-4 text-right">Total Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody" class="text-xl">
+                        </tbody>
+                </table>
+                <button onclick="location.reload()" class="mt-12 w-full py-4 border border-gray-700 text-gray-400 hover:bg-gray-900 hover:text-white transition">RESTART SYSTEM</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA ---
+        const rawTexts = {
+            para1: "चक्रवर्ती सम्राट ने अपने राज्य में एक भव्य उत्सव की घोषणा की। पूरे नगर को सुसज्जित किया गया और हजारों दीपकों को प्रज्वलित किया गया। अंतर्राष्ट्रीय अतिथि और विद्वान भी इस समारोह में आमंत्रित थे। स्वागत समारोह में सांस्कृतिक कार्यक्रम प्रस्तुत किए गए, जिनमें नृत्य और नाट्य कला का प्रदर्शन हुआ। राजा ने प्रतिज्ञा की कि वे प्रजा के कल्याण, स्वास्थ्य और सशक्तीकरण के लिए निरंतर कार्य करेंगे। सभी ने राजा के धैर्य, शौर्य और न्यायप्रियता की सराहना की।",
+            para2: "खड़क सिंह की खड़कती आवाज़ सुनकर खड़गपुर के खड़ूस लोग भी हँस पड़े। चंदू के चाचा ने चाँदनी चौक में चाँदी की चम्मच से चटनी चटाई। पके पेड़ पर पका पपीता, पिंकू ने पकड़ा पका पपीता। कच्चा पापड़, पक्का पापड़, बार-बार बोलने से जिह्वा लड़खड़ा गई। समझ-समझ के समझ को समझो, समझ समझना भी एक समझ है। जिसने समझा ना समझ को, मेरी समझ में वो नासमझ है।"
+        };
+
+        // --- STATE ---
+        let players = [];
+        let currentPlayerIdx = 0;
+        let gameMode = 'word'; // 'word' or 'sentence'
+        let contentList = [];
+        let contentIdx = 0;
+        let score = 0;
+        let gameActive = false;
+        
+        // Timers
+        let itemTimer = null;
+        let displayTimerInterval = null;
+        let itemDuration = 2000; // ms
+
+        // Audio Context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // --- AUDIO ENGINE ---
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'correct') { // High Ping
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start();
+                osc.stop(now + 0.3);
+            } else if (type === 'wrong') { // Low Buzz
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.2);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start();
+                osc.stop(now + 0.3);
+            } else if (type === 'highScore') { // Magical Chime
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.1);
+                osc.frequency.linearRampToValueAtTime(1200, now + 0.3);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start();
+                osc.stop(now + 0.5);
+            }
+        }
+
+        // --- LOBBY FUNCTIONS ---
+        function addPlayer() {
+            const input = document.getElementById('playerNameInput');
+            const name = input.value.trim();
+            if(!name || players.some(p => p.name === name)) return;
+            
+            players.push({name, score: 0});
+            input.value = '';
+            renderPlayerList();
+        }
+
+        function renderPlayerList() {
+            const list = document.getElementById('playerList');
+            const btn = document.getElementById('startBtn');
+            
+            list.innerHTML = players.map((p, i) => 
+                `<div class="flex justify-between items-center text-gray-300 bg-gray-900 px-3 py-1 mb-1 rounded border border-gray-800">
+                    <span>${i+1}. ${p.name}</span>
+                </div>`
+            ).join('');
+
+            btn.disabled = players.length === 0;
+            if(players.length > 0) btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+
+        document.getElementById('playerNameInput').addEventListener('keypress', e => {
+            if(e.key === 'Enter') addPlayer();
+        });
+
+        // --- GAME LOGIC START ---
+        function startTournament() {
+            gameMode = document.getElementById('gameMode').value;
+            const topicKey = document.getElementById('topicSelect').value;
+            const rawText = rawTexts[topicKey];
+
+            // Content Parsing
+            if (gameMode === 'word') {
+                contentList = rawText.split(/\s+/).filter(x => x.length > 0);
+                itemDuration = 1800; // 1.8 sec per word
+            } else {
+                // Split by Hindi full stop '।' or common punctuation
+                contentList = rawText.split(/[।?!]/g).filter(x => x.trim().length > 0).map(x => x.trim() + "।");
+                itemDuration = 15000; // 15 sec per sentence
+            }
+
+            document.getElementById('lobbyScreen').classList.add('hidden');
+            document.getElementById('controlsHint').innerText = 
+                gameMode === 'word' ? "KEYS: 'A' (Correct) | 'F' (Wrong)" : "KEYS: 1-9 (Score) | 0 (Score 10)";
+            
+            currentPlayerIdx = 0;
+            showReadyScreen();
+        }
+
+        function showReadyScreen() {
+            const p = players[currentPlayerIdx];
+            document.getElementById('nextPlayerName').innerText = p.name;
+            document.getElementById('instructionText').innerText = 
+                gameMode === 'word' ? "Teacher: Press 'A' for Correct, 'F' for Wrong" : "Teacher: Rate reading from 1 to 10 using number keys";
+            
+            document.getElementById('readyScreen').classList.remove('hidden');
+            document.getElementById('gameScreen').classList.add('hidden');
+            document.getElementById('roundResultScreen').classList.add('hidden');
+        }
+
+        function startTurn() {
+            document.getElementById('readyScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            
+            document.getElementById('activePlayerName').innerText = players[currentPlayerIdx].name;
+            contentIdx = 0;
+            score = 0;
+            document.getElementById('currentScore').innerText = 0;
+            gameActive = true;
+
+            showNextItem();
+        }
+
+        function showNextItem() {
+            if (contentIdx >= contentList.length) {
+                endTurn();
+                return;
+            }
+
+            const content = contentList[contentIdx];
+            const display = document.getElementById('contentDisplay');
+            const timerBar = document.getElementById('progressBar');
+            
+            // Adjust Font Size based on mode
+            if(gameMode === 'word') {
+                display.className = "text-7xl md:text-8xl font-bold text-white drop-shadow-lg";
+            } else {
+                display.className = "text-3xl md:text-4xl leading-relaxed font-semibold text-gray-200 px-4";
+            }
+
+            display.innerText = content;
+            
+            // Reset Visuals
+            timerBar.style.transition = 'none';
+            timerBar.style.width = '100%';
+            
+            // Start Timers
+            let timeLeft = itemDuration / 1000;
+            const visualTimer = document.getElementById('visualTimer');
+            visualTimer.innerText = timeLeft.toFixed(1);
+            visualTimer.classList.remove('text-red-500');
+            visualTimer.classList.add('text-white');
+
+            clearInterval(displayTimerInterval);
+            displayTimerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                visualTimer.innerText = Math.max(0, timeLeft).toFixed(1);
+                if(timeLeft <= 3) visualTimer.classList.add('text-red-500');
+            }, 100);
+
+            // Bar Animation
+            setTimeout(() => {
+                timerBar.style.transition = `width ${itemDuration}ms linear`;
+                timerBar.style.width = '0%';
+            }, 50);
+
+            clearTimeout(itemTimer);
+            itemTimer = setTimeout(() => {
+                if(gameActive) handleInput('timeout');
+            }, itemDuration);
+        }
+
+        // --- INPUT & SCORING ---
+        document.addEventListener('keydown', (e) => {
+            if(!gameActive) return;
+
+            if(gameMode === 'word') {
+                if(e.key.toLowerCase() === 'a') handleInput('correct');
+                if(e.key.toLowerCase() === 'f') handleInput('wrong');
+            } else {
+                // Sentence Mode (0-9 keys)
+                if(e.key >= '1' && e.key <= '9') handleInput('score', parseInt(e.key));
+                if(e.key === '0') handleInput('score', 10);
+            }
+        });
+
+        function handleInput(type, val = 0) {
+            clearTimeout(itemTimer);
+            clearInterval(displayTimerInterval);
+
+            let points = 0;
+            let color = "";
+            let textToShow = "";
+
+            if (gameMode === 'word') {
+                if (type === 'correct') {
+                    points = 1;
+                    playSound('correct');
+                    color = "text-green-400";
+                    textToShow = "+1";
+                    flashScreen('green');
+                } else {
+                    points = -0.5;
+                    playSound('wrong');
+                    color = "text-red-500";
+                    textToShow = "-0.5";
+                    flashScreen('red');
+                }
+            } else {
+                // Sentence Mode
+                if(type === 'timeout') {
+                    points = 0;
+                    playSound('wrong');
+                    textToShow = "Time Up";
+                    color = "text-red-500";
+                } else {
+                    points = val;
+                    if(points >= 8) playSound('highScore');
+                    else playSound('correct');
+                    textToShow = `+${points}`;
+                    color = points >= 7 ? "text-yellow-400" : (points >= 4 ? "text-blue-400" : "text-red-400");
+                }
+            }
+
+            score += points;
+            document.getElementById('currentScore').innerText = score;
+            
+            // Show Floating Score
+            showFloatingText(textToShow, color);
+
+            contentIdx++;
+            setTimeout(showNextItem, 400); // Slight delay before next
+        }
+
+        function showFloatingText(text, colorClass) {
+            const container = document.getElementById('gameScreen');
+            const el = document.createElement('div');
+            el.className = `floating-score ${colorClass}`;
+            el.innerText = text;
+            
+            // Randomize position slightly around center
+            const randomX = (Math.random() - 0.5) * 100;
+            el.style.left = `calc(50% + ${randomX}px)`;
+            el.style.top = `40%`;
+            
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 1000);
+        }
+
+        function flashScreen(color) {
+            const layer = document.getElementById('feedbackLayer');
+            layer.className = `absolute inset-0 pointer-events-none z-0 opacity-20 transition-opacity duration-200 ${color === 'green' ? 'bg-green-500' : 'bg-red-600'}`;
+            setTimeout(() => layer.classList.remove('opacity-20'), 100);
+        }
+
+        function endTurn() {
+            gameActive = false;
+            players[currentPlayerIdx].score = score;
+
+            document.getElementById('roundPlayerName').innerText = players[currentPlayerIdx].name;
+            document.getElementById('roundScore').innerText = score.toFixed(1);
+            document.getElementById('roundItems').innerText = `${contentList.length} Items`;
+            
+            document.getElementById('roundResultScreen').classList.remove('hidden');
+            
+            const btn = document.getElementById('nextBtn');
+            if (currentPlayerIdx >= players.length - 1) {
+                btn.innerText = "🏆 VIEW CHAMPIONS";
+                btn.classList.replace('bg-purple-700', 'bg-yellow-600');
+            } else {
+                btn.innerText = "NEXT AGENT ⏭";
+                btn.classList.replace('bg-yellow-600', 'bg-purple-700');
+            }
+        }
+
+        function nextPlayer() {
+            if (currentPlayerIdx >= players.length - 1) {
+                showFinalBoard();
+            } else {
+                currentPlayerIdx++;
+                showReadyScreen();
+            }
+        }
+
+        function showFinalBoard() {
+            players.sort((a,b) => b.score - a.score);
+            
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = players.map((p, i) => {
+                let color = "text-white";
+                let icon = `#${i+1}`;
+                if(i===0) { color="text-yellow-400 font-bold"; icon="👑"; }
+                if(i===1) { color="text-gray-300"; icon="🥈"; }
+                if(i===2) { color="text-orange-500"; icon="🥉"; }
+                
+                return `<tr class="border-b border-gray-800">
+                    <td class="p-4 ${color}">${icon}</td>
+                    <td class="p-4 ${color}">${p.name}</td>
+                    <td class="p-4 text-right font-mono ${color}">${p.score.toFixed(1)}</td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('roundResultScreen').classList.add('hidden');
+            document.getElementById('finalBoard').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

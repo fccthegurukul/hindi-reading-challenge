@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>हिंदी उच्चारण खेल - Pronunciation Game</title>
+    <style>
+        :root {
+            --primary: #00D9FF;
+            --secondary: #FF6B35;
+            --success: #00FF88;
+            --error: #FF4444;
+            --bg: #0A0E27;
+            --surface: #1A1F3A;
+            --surface-light: #252C48;
+            --text: #E8F0FF;
+            --text-light: #A0A8C0;
+            --border: #2A3F5F;
+            --dark-overlay: rgba(10, 14, 39, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0A0E27 0%, #1a1f3a 100%);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #1a1f3a, #2a3f5f);
+            color: white;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: 2px 0 20px rgba(0, 217, 255, 0.1);
+            border-right: 2px solid var(--primary);
+        }
+
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+
+        .leaderboard-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 217, 255, 0.05);
+            border-radius: 8px;
+            font-size: 14px;
+            border-left: 3px solid var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .leaderboard-item:hover {
+            background: rgba(0, 217, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .leaderboard-item .rank {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .leaderboard-item .score {
+            float: right;
+            background: rgba(0, 217, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* --- WELCOME SCREEN --- */
+        .screen {
+            display: none;
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .welcome-screen h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .welcome-screen p {
+            font-size: 18px;
+            color: var(--text-light);
+            margin-bottom: 30px;
+        }
+
+        /* REGISTRATION SCREEN */
+        .registration-screen {
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .registration-screen h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .players-list {
+            margin: 30px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+        }
+
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface-light);
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .player-item-name {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .player-item .remove-btn {
+            background: var(--error);
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .player-item .remove-btn:hover {
+            background: #FF5555;
+        }
+
+        .add-player-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .add-player-container input {
+            flex: 1;
+        }
+
+        .btn-add {
+            background: var(--secondary);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-add:hover {
+            background: #FF7F4D;
+        }
+
+        .turn-indicator {
+            text-align: center;
+            padding: 20px;
+            background: var(--surface);
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.1);
+        }
+
+        .turn-indicator h2 {
+            color: var(--primary);
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+        }
+
+        .turn-indicator .player-num {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            transition: border-color 0.3s;
+            background: var(--surface-light);
+            color: var(--text);
+        }
+
+        .input-group input::placeholder {
+            color: var(--text-light);
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.2);
+        }
+
+        /* --- GAME SCREEN --- */
+        .game-screen {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(0,217,255,0.05), rgba(255,107,53,0.05));
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 2px solid var(--primary);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.1);
+        }
+
+        .player-info {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .score-display {
+            display: flex;
+            gap: 20px;
+            font-weight: 600;
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 12px;
+            color: var(--text-light);
+            text-transform: uppercase;
+        }
+
+        .score-value {
+            font-size: 28px;
+            color: var(--primary);
+        }
+
+        /* --- WORD DISPLAY --- */
+        .word-container {
+            background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(255,107,53,0.1));
+            padding: 60px 30px;
+            border-radius: 15px;
+            text-align: center;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid var(--primary);
+            box-shadow: 0 0 30px rgba(0, 217, 255, 0.15), inset 0 0 30px rgba(0, 217, 255, 0.05);
+        }
+
+        .word-display {
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+            animation: wordPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes wordPop {
+            0% { 
+                transform: scale(0) rotate(-10deg);
+                opacity: 0;
+            }
+            100% { 
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        .timer-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .timer-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+            width: 100%;
+            animation: timerReduce 2s linear;
+        }
+
+        @keyframes timerReduce {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-correct {
+            background: var(--success);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-correct:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-correct:active {
+            transform: translateY(0);
+        }
+
+        .btn-incorrect {
+            background: var(--error);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-incorrect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-incorrect:active {
+            transform: translateY(0);
+        }
+
+        .hint-text {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- RESULTS SCREEN --- */
+        .results-screen {
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .results-screen h2 {
+            font-size: 36px;
+            color: var(--primary);
+            margin-bottom: 30px;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, rgba(0,217,255,0.05), rgba(255,107,53,0.05));
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.05);
+        }
+
+        .result-card:hover {
+            background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(255,107,53,0.1));
+            transform: translateX(8px);
+            box-shadow: 0 0 25px rgba(0, 217, 255, 0.15);
+        }
+
+        .result-name {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--text);
+        }
+
+        .result-score {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--success);
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--bg);
+            padding: 12px 30px;
+            margin-top: 20px;
+            width: 100%;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: #00FFFF;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 217, 255, 0.5);
+        }
+
+        /* --- FEEDBACK --- */
+        .feedback {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            animation: slideIn 0.4s ease-out;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .feedback.success {
+            background: linear-gradient(135deg, var(--success), #00CC66);
+            color: var(--bg);
+            border-left: 4px solid var(--success);
+        }
+
+        .feedback.error {
+            background: linear-gradient(135deg, var(--error), #FF6666);
+            color: white;
+            border-left: 4px solid var(--error);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .word-count {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                max-height: 150px;
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                border-right: none;
+                border-bottom: 2px solid var(--primary);
+            }
+
+            .main {
+                padding: 20px;
+            }
+
+            .word-display {
+                font-size: 48px;
+            }
+
+            .btn {
+                padding: 12px 20px;
+                font-size: 16px;
+            }
+
+            .turn-indicator h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <h2>🏆 Leaderboard</h2>
+            <div id="leaderboard"></div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main">
+            <!-- WELCOME SCREEN -->
+            <div class="screen welcome-screen active">
+                <h1>🎯 उच्चारण खेल</h1>
+                <p>Pronunciation Practice Game</p>
+                <div style="background: var(--surface); padding: 20px; border-radius: 10px; margin: 20px 0; border: 2px solid var(--border);">
+                    <p style="color: var(--text-light); font-size: 14px; text-align: center;">सभी खिलाड़ियों के नाम दर्ज करें और फिर खेल शुरू करें</p>
+                </div>
+                <button class="btn btn-primary" onclick="goToRegistration()">आगे बढ़ें (Continue)</button>
+            </div>
+
+            <!-- REGISTRATION SCREEN -->
+            <div class="screen registration-screen">
+                <h1>🎮 खिलाड़ी पंजीकरण</h1>
+                <p style="color: var(--text-light); text-align: center; margin-bottom: 20px;">सभी खिलाड़ियों के नाम दर्ज करें</p>
+
+                <div class="add-player-container">
+                    <input type="text" id="newPlayerName" placeholder="खिलाड़ी का नाम..." maxlength="20">
+                    <button class="btn btn-add" onclick="addPlayer()">➕ जोड़ें</button>
+                </div>
+
+                <div class="players-list" id="playersList">
+                    <p style="color: var(--text-light); text-align: center;">कोई खिलाड़ी जोड़ा नहीं गया</p>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn" style="background: var(--text-light); color: var(--bg); flex: 1; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;" onclick="goToWelcome()">← पीछे (Back)</button>
+                    <button class="btn btn-primary" style="flex: 1;" onclick="startGameWithPlayers()">खेल शुरू करें (Start Game)</button>
+                </div>
+            </div>
+
+            <!-- GAME SCREEN -->
+            <div class="screen game-screen">
+                <div class="game-header">
+                    <div class="player-info">खिलाड़ी: <span id="currentPlayer"></span></div>
+                    <div class="score-display">
+                        <div class="score-item">
+                            <div class="score-label">स्कोर</div>
+                            <div class="score-value" id="scoreDisplay">0</div>
+                        </div>
+                        <div class="score-item">
+                            <div class="score-label">शब्द</div>
+                            <div class="score-value" id="wordCount">1/30</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="word-container">
+                    <div>
+                        <div class="word-display" id="wordDisplay">शब्द</div>
+                        <div class="timer-bar">
+                            <div class="timer-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="turn-indicator">
+                    <h2 id="currentPlayerDisplay">खिलाड़ी 1/1</h2>
+                    <div class="player-num" id="playerNameDisplay">नाम यहाँ</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-correct" onclick="recordCorrect()">✓ सही (Correct)</button>
+                    <button class="btn btn-incorrect" onclick="recordIncorrect()">✗ गलत (Incorrect)</button>
+                </div>
+                <div class="hint-text">या A दबाएं (सही) / F दबाएं (गलत) | Or Press A (Correct) / F (Incorrect)</div>
+            </div>
+
+            <!-- RESULTS SCREEN -->
+            <div class="screen results-screen">
+                <h2>🎊 खेल समाप्त!</h2>
+                <div id="resultsContainer"></div>
+                <button class="btn btn-primary" onclick="location.reload()">दोबारा खेलें (Play Again)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO ELEMENTS -->
+    <audio id="successSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+    <audio id="errorSound" preload="auto">
+        <source src="data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==" type="audio/wav">
+    </audio>
+
+    <script>
+        // ===== DATA & STATE =====
+        const TOTAL_WORDS = 30;
+        const WORD_DISPLAY_TIME = 2000; // 2 seconds
+
+        // 92 unique Hindi words from the paragraph
+        const words = [
+            "सम्राट", "उत्सव", "भारीभरकम", "शब्द", "चक्रवर्ती", "अपने", "राज्य", "में", "भव्य", "घोषणा",
+            "पूरे", "नगर", "सुसज्जित", "किया", "गया", "हजारों", "दीपकों", "प्रज्वलित", "अंतर्राष्ट्रीय", "अतिथि",
+            "विद्वान", "समारोह", "आमंत्रित", "स्वागत", "सांस्कृतिक", "कार्यक्रम", "प्रस्तुत", "किए", "जिनमें", "नृत्य",
+            "नाट्य", "कला", "प्रदर्शन", "हुआ", "राजा", "ने", "प्रतिज्ञा", "की", "कि", "वे",
+            "प्रजा", "के", "कल्याण", "स्वास्थ्य", "और", "सशक्तीकरण", "के", "लिए", "निरंतर", "कार्य",
+            "करेंगे", "सभी", "के", "धैर्य", "शौर्य", "न्यायप्रियता", "सराहना", "खड़क", "सिंह", "खड़कती"
+        ];
+
+        let gameState = {
+            allPlayers: [],
+            currentPlayerIndex: 0,
+            currentPlayer: '',
+            currentWordIndex: 0,
+            score: 0,
+            allResults: [],
+            isGameActive: false,
+            wordTimer: null,
+            currentPlayerResults: {}
+        };
+
+        // ===== INITIALIZATION =====
+        function loadLeaderboard() {
+            const results = JSON.parse(localStorage.getItem('gameResults')) || [];
+            displayLeaderboard(results);
+        }
+
+        function displayLeaderboard(results) {
+            const leaderboard = document.getElementById('leaderboard');
+            if (results.length === 0) {
+                leaderboard.innerHTML = '<p style="color:rgba(255,255,255,0.7);font-size:12px;">कोई स्कोर नहीं</p>';
+                return;
+            }
+
+            const sorted = results
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 10);
+
+            leaderboard.innerHTML = sorted.map((result, idx) => `
+                <div class="leaderboard-item">
+                    <span class="rank">#${idx + 1} ${result.playerName}</span>
+                    <span class="score">${result.score.toFixed(1)} pts</span>
+                </div>
+            `).join('');
+        }
+
+        // ===== SCREEN MANAGEMENT =====
+        function showScreen(screenIndex) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.screen')[screenIndex].classList.add('active');
+        }
+
+        function goToWelcome() {
+            showScreen(0);
+            gameState.allPlayers = [];
+            document.getElementById('playersList').innerHTML = '<p style="color: var(--text-light); text-align: center;">कोई खिलाड़ी जोड़ा नहीं गया</p>';
+        }
+
+        function goToRegistration() {
+            showScreen(1);
+        }
+
+        function addPlayer() {
+            const input = document.getElementById('newPlayerName');
+            const name = input.value.trim();
+            
+            if (!name) {
+                alert('कृपया खिलाड़ी का नाम दर्ज करें!');
+                return;
+            }
+
+            if (gameState.allPlayers.includes(name)) {
+                alert('यह नाम पहले से मौजूद है!');
+                return;
+            }
+
+            gameState.allPlayers.push(name);
+            input.value = '';
+            updatePlayersList();
+        }
+
+        function removePlayer(index) {
+            gameState.allPlayers.splice(index, 1);
+            updatePlayersList();
+        }
+
+        function updatePlayersList() {
+            const playersList = document.getElementById('playersList');
+            if (gameState.allPlayers.length === 0) {
+                playersList.innerHTML = '<p style="color: var(--text-light); text-align: center;">कोई खिलाड़ी जोड़ा नहीं गया</p>';
+                return;
+            }
+
+            playersList.innerHTML = gameState.allPlayers.map((name, idx) => `
+                <div class="player-item">
+                    <span class="player-item-name">👤 ${name}</span>
+                    <button class="remove-btn" onclick="removePlayer(${idx})">हटाएं</button>
+                </div>
+            `).join('');
+        }
+
+        function startGameWithPlayers() {
+            if (gameState.allPlayers.length === 0) {
+                alert('कृपया कम से कम एक खिलाड़ी जोड़ें!');
+                return;
+            }
+
+            gameState.currentPlayerIndex = 0;
+            gameState.allResults = JSON.parse(localStorage.getItem('gameResults')) || [];
+            
+            startCurrentPlayerTurn();
+        }
+
+        // ===== GAME FLOW =====
+        function startCurrentPlayerTurn() {
+            const playerName = gameState.allPlayers[gameState.currentPlayerIndex];
+            gameState.currentPlayer = playerName;
+            gameState.currentWordIndex = 0;
+            gameState.score = 0;
+            gameState.isGameActive = true;
+            gameState.currentPlayerResults = {
+                playerName: playerName,
+                score: 0,
+                timestamp: new Date().toLocaleString('hi-IN'),
+                wordDetails: []
+            };
+
+            const playerNum = gameState.currentPlayerIndex + 1;
+            const totalPlayers = gameState.allPlayers.length;
+            document.getElementById('currentPlayerDisplay').textContent = `खिलाड़ी ${playerNum}/${totalPlayers}`;
+            document.getElementById('playerNameDisplay').textContent = `${playerName} - अपना शब्द बोलें!`;
+            document.getElementById('scoreDisplay').textContent = '0';
+            document.getElementById('wordCount').textContent = '0/30';
+            
+            showScreen(2); // Game screen
+            playNextWord();
+        }
+
+        function playNextWord() {
+            // Check if all 30 words are done
+            if (gameState.currentWordIndex >= TOTAL_WORDS) {
+                clearTimeout(gameState.wordTimer);
+                endCurrentPlayerTurn();
+                return;
+            }
+
+            // Get the next word
+            const word = words[gameState.currentWordIndex % words.length];
+            document.getElementById('wordDisplay').textContent = word;
+            document.getElementById('wordCount').textContent = `${gameState.currentWordIndex + 1}/${TOTAL_WORDS}`;
+
+            // Auto-advance after 2 seconds
+            if (gameState.wordTimer) clearTimeout(gameState.wordTimer);
+            gameState.wordTimer = setTimeout(() => {
+                gameState.currentWordIndex++;
+                playNextWord();
+            }, WORD_DISPLAY_TIME);
+        }
+
+        function recordCorrect() {
+            if (!gameState.isGameActive) return;
+            
+            clearTimeout(gameState.wordTimer);
+            gameState.score += 1;
+            gameState.currentPlayerResults.wordDetails.push({ 
+                wordIndex: gameState.currentWordIndex, 
+                correct: true,
+                word: words[gameState.currentWordIndex % words.length]
+            });
+            document.getElementById('scoreDisplay').textContent = gameState.score.toFixed(1);
+            
+            playSuccessSound();
+            showFeedback('✓ सही! (+1)', 'success');
+            
+            gameState.currentWordIndex++;
+            playNextWord();
+        }
+
+        function recordIncorrect() {
+            if (!gameState.isGameActive) return;
+            
+            clearTimeout(gameState.wordTimer);
+            gameState.score = Math.max(0, gameState.score - 0.5);
+            gameState.currentPlayerResults.wordDetails.push({ 
+                wordIndex: gameState.currentWordIndex, 
+                correct: false,
+                word: words[gameState.currentWordIndex % words.length]
+            });
+            document.getElementById('scoreDisplay').textContent = gameState.score.toFixed(1);
+            
+            playErrorSound();
+            showFeedback('✗ गलत! (-0.5)', 'error');
+            
+            gameState.currentWordIndex++;
+            playNextWord();
+        }
+
+        function endCurrentPlayerTurn() {
+            gameState.isGameActive = false;
+            gameState.currentPlayerResults.score = gameState.score;
+            gameState.currentPlayerResults.timestamp = new Date().toLocaleString('hi-IN');
+
+            // Save to results array
+            gameState.allResults.push(gameState.currentPlayerResults);
+            
+            // Save to localStorage
+            localStorage.setItem('gameResults', JSON.stringify(gameState.allResults));
+            loadLeaderboard();
+
+            // Move to next player
+            gameState.currentPlayerIndex++;
+
+            if (gameState.currentPlayerIndex < gameState.allPlayers.length) {
+                // More players remaining - show transition screen
+                showTransitionScreen();
+            } else {
+                // All players done - show final results
+                setTimeout(() => {
+                    showFinalResults();
+                }, 500);
+            }
+        }
+
+        function showTransitionScreen() {
+            const nextPlayer = gameState.allPlayers[gameState.currentPlayerIndex];
+            const nextPlayerNum = gameState.currentPlayerIndex + 1;
+            const totalPlayers = gameState.allPlayers.length;
+            
+            // Update display for transition
+            document.getElementById('currentPlayerDisplay').textContent = `खिलाड़ी ${nextPlayerNum}/${totalPlayers}`;
+            document.getElementById('playerNameDisplay').textContent = `अगला खिलाड़ी: ${nextPlayer}`;
+            document.getElementById('scoreDisplay').textContent = '0';
+            document.getElementById('wordCount').textContent = '0/30';
+            
+            // Update word display to show "तैयारी करें"
+            document.getElementById('wordDisplay').textContent = '🎯';
+            
+            // Wait 1.5 seconds then start next player's turn
+            setTimeout(() => {
+                startCurrentPlayerTurn();
+            }, 1500);
+        }
+
+        function showFinalResults() {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const sorted = gameState.allResults.sort((a, b) => b.score - a.score);
+
+            let podium = '';
+            if (sorted.length > 0) {
+                podium = `
+                    <div style="text-align: center; margin-bottom: 30px; background: linear-gradient(135deg, rgba(0,217,255,0.1), rgba(255,107,53,0.1)); padding: 25px; border-radius: 10px; border: 2px solid var(--primary); box-shadow: 0 0 30px rgba(0, 217, 255, 0.2);">
+                        <h3 style="color: var(--primary); margin-bottom: 15px; text-shadow: 0 0 15px rgba(0, 217, 255, 0.5); font-size: 24px;">🏆 विजेता (Winner)</h3>
+                        <div style="font-size: 32px; font-weight: 700; color: var(--success); text-shadow: 0 0 10px rgba(0, 255, 136, 0.4); margin-bottom: 10px;">
+                            👑 ${sorted[0].playerName}
+                        </div>
+                        <div style="font-size: 24px; color: var(--secondary); font-weight: 600;">
+                            ⭐ ${sorted[0].score.toFixed(1)} अंक
+                        </div>
+                    </div>
+                `;
+            }
+
+            let topThree = '';
+            if (sorted.length > 1) {
+                topThree = `
+                    <div style="display: grid; grid-template-columns: repeat(${Math.min(3, sorted.length)}, 1fr); gap: 15px; margin-bottom: 25px;">
+                        ${sorted.slice(0, 3).map((r, idx) => `
+                            <div style="background: linear-gradient(135deg, rgba(0,217,255,0.05), rgba(255,107,53,0.05)); padding: 15px; border-radius: 8px; text-align: center; border: 2px solid var(--primary);">
+                                <div style="font-size: 24px; margin-bottom: 8px;">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</div>
+                                <div style="font-size: 14px; color: var(--text-light); margin-bottom: 5px;">#${idx + 1}</div>
+                                <div style="font-size: 16px; font-weight: 600; color: var(--text);">${r.playerName}</div>
+                                <div style="font-size: 18px; color: var(--success); font-weight: 700; margin-top: 5px;">${r.score.toFixed(1)} pts</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            resultsContainer.innerHTML = `
+                ${podium}
+                ${topThree}
+                <h3 style="margin-top: 25px; margin-bottom: 15px; color: var(--primary); text-shadow: 0 0 15px rgba(0, 217, 255, 0.5);">📊 सभी खिलाड़ियों के स्कोर</h3>
+                ${sorted.map((r, idx) => `
+                    <div class="result-card">
+                        <span class="result-name">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '•'} ${r.playerName}</span>
+                        <span class="result-score">${r.score.toFixed(1)}</span>
+                    </div>
+                `).join('')}
+            `;
+
+            showScreen(3); // Results screen
+        }
+
+        // ===== AUDIO & FEEDBACK =====
+        function playSuccessSound() {
+            // Create beep sound using Web Audio API
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800; // Higher pitch for success
+            oscillator.type = 'sine';
+            
+            gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        function playErrorSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 400; // Lower pitch for error
+            oscillator.type = 'sine';
+            
+            gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        }
+
+        function showFeedback(message, type) {
+            const feedback = document.createElement('div');
+            feedback.className = `feedback ${type}`;
+            feedback.textContent = message;
+            document.body.appendChild(feedback);
+
+            setTimeout(() => {
+                feedback.remove();
+            }, 1500);
+        }
+
+        // ===== KEYBOARD SHORTCUTS =====
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'a') recordCorrect();
+            if (e.key.toLowerCase() === 'f') recordIncorrect();
+        });
+
+        // ===== LOAD DATA ON START =====
+        loadLeaderboard();
+    </script>
+</body>
+</html>
