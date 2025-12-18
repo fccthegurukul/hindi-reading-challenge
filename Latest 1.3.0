@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="hi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Battle: Final Solid Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Tiro+Devanagari+Hindi&display=swap"
+        rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: { black: '#000000', dark: '#0b1120', panel: '#111827' }
+                    },
+                    animation: {
+                        'heart-beat': 'heart-beat 0.5s ease-in-out',
+                        'float': 'float 3s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        'heart-beat': { '0%, 100%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.4)' } },
+                        'float': { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-6px)' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Tiro Devanagari Hindi', serif;
+            background-color: #000;
+            color: #fff;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .gaming-font {
+            font-family: 'Rajdhani', sans-serif;
+        }
+
+        /* SOLID UI - NO OPACITY */
+        .solid-panel {
+            background-color: #0b1120;
+            /* Very Dark Slate */
+            border: 2px solid #1e293b;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 1), 0 20px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .hud-box {
+            background-color: #000;
+            border: 1px solid #334155;
+            color: #fff;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+        }
+
+        .solid-input {
+            background: #1f2937 !important;
+            border: 1px solid #374151 !important;
+            color: white !important;
+            transition: border 0.2s;
+        }
+
+        .solid-input:focus {
+            border-color: #3b82f6 !important;
+            background: #111827 !important;
+        }
+
+        /* TEXT CLARITY */
+        #contentDisplay {
+            z-index: 50;
+            position: relative;
+            text-shadow: 3px 3px 0px #000;
+            line-height: 1.3;
+        }
+
+        /* Heart Animation */
+        .heart-icon {
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .heart-pop {
+            animation: heart-beat 0.6s;
+            color: #4ade80 !important;
+            filter: drop-shadow(0 0 8px #4ade80);
+        }
+
+        .heart-lost {
+            filter: grayscale(100%);
+            opacity: 0.2;
+            transform: scale(0.8);
+        }
+
+        /* Floating Score */
+        .floating-score {
+            position: absolute;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 800;
+            font-size: 4rem;
+            animation: floatUp 0.9s ease-out forwards;
+            z-index: 60;
+            pointer-events: none;
+            text-shadow: 3px 3px 0 #000;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.8);
+                opacity: 0;
+            }
+
+            20% {
+                transform: translateY(-20px) scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-120px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Subtle Grid */
+        .bg-grid {
+            background-image: linear-gradient(#1f2937 1px, transparent 1px), linear-gradient(90deg, #1f2937 1px, transparent 1px);
+            background-size: 40px 40px;
+            background-color: #000;
+        }
+
+        /* Shake Effect */
+        .shake-screen {
+            animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+        }
+
+        @keyframes shake {
+
+            10%,
+            90% {
+                transform: translate3d(-2px, 0, 0);
+            }
+
+            20%,
+            80% {
+                transform: translate3d(4px, 0, 0);
+            }
+
+            30%,
+            50%,
+            70% {
+                transform: translate3d(-6px, 0, 0);
+            }
+
+            40%,
+            60% {
+                transform: translate3d(6px, 0, 0);
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex items-center justify-center bg-grid overflow-hidden">
+
+    <div id="mainContainer"
+        class="w-full max-w-7xl h-[95vh] solid-panel rounded-xl flex flex-col relative overflow-hidden z-10">
+
+        <header class="flex justify-between items-center px-8 py-5 border-b border-slate-800 bg-[#020617] z-30">
+            <div class="flex items-center gap-4">
+                <h1 class="text-4xl font-bold tracking-widest text-white gaming-font uppercase">
+                    Reading <span class="text-blue-500">Battle</span>
+                </h1>
+                <span id="teamBadge"
+                    class="hidden text-xs bg-blue-900 text-blue-200 px-3 py-1 rounded border border-blue-600 font-bold uppercase tracking-wider">Teams
+                    Active</span>
+            </div>
+
+            <div class="flex gap-4 items-center">
+                <button onclick="toggleMute()" id="muteBtn"
+                    class="text-xs font-bold font-mono text-slate-300 border border-slate-700 px-4 py-2 rounded bg-slate-800 hover:bg-slate-700 transition">
+                    🔊 SOUND ON
+                </button>
+            </div>
+        </header>
+
+        <div id="screenLobby"
+            class="flex-1 flex flex-col items-center justify-center p-8 z-20 overflow-y-auto bg-[#0b1120]">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 w-full max-w-6xl">
+
+                <div class="md:col-span-5 bg-[#111827] p-8 rounded-lg border border-slate-800 shadow-xl">
+                    <h2
+                        class="text-purple-400 font-bold mb-6 uppercase tracking-widest text-sm flex items-center gap-2 gaming-font">
+                        ⚙️ Configuration
+                    </h2>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-slate-400 text-xs mb-2 font-bold uppercase tracking-wider">Game
+                                Mode</label>
+                            <select id="gameMode" onchange="updateTopicDropdown()"
+                                class="w-full solid-input text-lg p-3 rounded outline-none cursor-pointer">
+                                <option value="word">⚡ Word Rapid Fire</option>
+                                <option value="sentence">📜 Sentence Flow</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-slate-400 text-xs mb-2 font-bold uppercase tracking-wider">Timer
+                                    (Sec)</label>
+                                <input type="number" id="timeSetting" value="2" min="1" max="60"
+                                    class="w-full solid-input text-lg p-3 rounded outline-none text-center font-mono">
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-slate-400 text-xs mb-2 font-bold uppercase tracking-wider">Lives</label>
+                                <input type="number" id="livesSetting" value="3" min="1" max="5"
+                                    class="w-full solid-input text-lg p-3 rounded outline-none text-center font-mono text-red-400 bg-red-900/10">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-slate-400 text-xs mb-2 font-bold uppercase tracking-wider">Dataset</label>
+                            <select id="topicSelect"
+                                class="w-full solid-input text-lg p-3 rounded outline-none cursor-pointer"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="md:col-span-7 bg-[#111827] p-8 rounded-lg border border-slate-800 flex flex-col shadow-xl">
+                    <div class="flex justify-between items-center mb-6 border-b border-slate-800 pb-4">
+                        <h2
+                            class="text-cyan-400 font-bold uppercase tracking-widest text-sm flex items-center gap-2 gaming-font">
+                            👥 Player Selection
+                        </h2>
+                        <label
+                            class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer select-none bg-slate-800 px-3 py-1 rounded border border-slate-700">
+                            <input type="checkbox" id="teamModeCheck" onchange="toggleTeamInput()"
+                                class="accent-cyan-500 w-4 h-4">
+                            TEAMS MODE
+                        </label>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-slate-500 text-[10px] mb-2 font-bold uppercase tracking-wider">👇
+                            Select Student</label>
+                        <select id="rosterSelect" onchange="fillFromRoster()"
+                            class="w-full bg-[#1f2937] text-white text-sm p-3 rounded outline-none cursor-pointer border border-slate-700 focus:border-cyan-500">
+                            <option value="">-- Choose Name --</option>
+                        </select>
+                    </div>
+
+                    <div class="flex gap-3 mb-5">
+                        <input type="text" id="playerNameInput" placeholder="Name..." autocomplete="off"
+                            class="flex-[2] solid-input text-lg p-3 rounded outline-none font-medium">
+                        <input type="text" id="teamNameInput" placeholder="Team..." autocomplete="off"
+                            class="hidden flex-[1] solid-input text-lg p-3 rounded outline-none bg-blue-900/10 text-blue-200">
+                        <button onclick="addPlayer()"
+                            class="bg-cyan-700 hover:bg-cyan-600 text-white px-6 rounded font-bold transition border border-cyan-500 shadow-lg">ADD</button>
+                    </div>
+
+                    <div id="playerList"
+                        class="flex-1 bg-black rounded border border-slate-800 overflow-y-auto h-40 p-3 space-y-2">
+                        <div class="flex flex-col items-center justify-center h-full text-slate-600 italic text-sm">
+                            <span>Powered by FCC THE GURUKUL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startGame()" id="startBtn"
+                class="mt-10 px-24 py-5 bg-purple-700 hover:bg-purple-600 text-white font-bold text-2xl rounded shadow-lg border-b-4 border-purple-900 active:border-b-0 active:translate-y-1 transition-all disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest"
+                disabled>
+                Start Session
+            </button>
+        </div>
+
+        <div id="screenReady" class="hidden absolute inset-0 bg-[#000] z-50 flex flex-col items-center justify-center">
+            <h3 class="text-slate-500 text-xl gaming-font tracking-[0.5em] mb-4 uppercase">NEXT PLAYER</h3>
+            <div id="readyTeamDisplay"
+                class="hidden text-blue-400 font-bold text-2xl mb-4 tracking-widest border border-blue-800 px-6 py-2 rounded bg-blue-900/20">
+                TEAM ALPHA</div>
+            <h1 id="readyPlayerName"
+                class="text-8xl md:text-9xl font-black text-white mb-10 uppercase tracking-tighter">PLAYER</h1>
+            <div class="bg-[#111827] px-10 py-6 rounded border border-slate-700 mb-12 max-w-lg text-center">
+                <p id="readyInstructions" class="text-slate-300 font-mono text-lg leading-relaxed">Loading...</p>
+            </div>
+            <button onclick="beginRound()"
+                class="px-16 py-5 border-2 border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white font-bold text-3xl rounded transition-all gaming-font tracking-widest">GO!
+                🚀</button>
+        </div>
+
+        <div id="screenGame" class="hidden flex-1 flex flex-col relative z-10 bg-[#000]">
+            <div id="feedbackLayer"
+                class="absolute inset-0 z-0 pointer-events-none opacity-0 transition-opacity duration-150"></div>
+
+            <div id="streakLeft" class="streak-emoji absolute top-1/3 left-10 text-9xl hidden">🔥</div>
+            <div id="streakRight" class="streak-emoji absolute top-1/3 right-10 text-9xl hidden">🔥</div>
+
+            <div class="flex justify-between items-start px-10 py-8 z-20 relative">
+                <div class="hud-box px-8 py-4 rounded min-w-[200px]">
+                    <span
+                        class="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Operative</span>
+                    <h2 id="gamePlayerName" class="text-4xl font-bold text-cyan-400 leading-none">Name</h2>
+                    <div id="gameTeamName" class="text-sm text-blue-400 mt-2 font-bold hidden">TEAM</div>
+                </div>
+
+                <div class="absolute left-1/2 -translate-x-1/2 top-6 flex flex-col items-center gap-3">
+                    <div id="visualTimer" class="text-8xl font-mono font-bold text-white tabular-nums drop-shadow-md">
+                        0.0</div>
+                    <div id="livesContainer"
+                        class="flex gap-3 bg-slate-900 px-5 py-2 rounded-full border border-slate-700">
+                    </div>
+                </div>
+
+                <div class="hud-box px-8 py-4 rounded text-right min-w-[200px]">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Score</span>
+                    <h2 id="gameScore" class="text-6xl font-bold text-yellow-400 gaming-font leading-none">0</h2>
+                </div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center relative px-4 w-full">
+                <div id="contentDisplay"
+                    class="font-bold text-white transition-all text-center select-none w-full break-words animate-float">
+                    Loading...</div>
+            </div>
+
+            <div class="absolute bottom-24 w-full text-center z-30">
+                <button onclick="skipItem()"
+                    class="text-slate-500 text-xs font-bold border border-slate-700 px-4 py-2 rounded hover:bg-slate-800 hover:text-white transition tracking-widest uppercase">Skip
+                    Word (S)</button>
+            </div>
+
+            <div class="h-4 bg-slate-900 w-full z-20 mt-auto border-t border-slate-800">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-blue-600 via-cyan-500 to-teal-400 w-full">
+                </div>
+            </div>
+        </div>
+
+        <div id="screenResult" class="hidden absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
+            <div
+                class="bg-[#111827] p-12 rounded border border-slate-700 text-center w-full max-w-xl relative shadow-2xl">
+                <h2 class="text-xl text-slate-500 mb-2 gaming-font uppercase tracking-widest">Report</h2>
+                <h1 id="resultPlayerName" class="text-7xl font-black text-white mb-8">-</h1>
+
+                <div id="gameOverMsg" class="hidden mb-8">
+                    <div class="text-red-500 font-bold text-3xl uppercase tracking-widest animate-pulse">💔 Mission
+                        Failed 💔</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 mb-10">
+                    <div class="bg-black p-6 rounded border border-slate-800">
+                        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Items</div>
+                        <div id="resultItems" class="text-5xl font-bold text-cyan-400">0</div>
+                    </div>
+                    <div class="bg-black p-6 rounded border border-slate-800">
+                        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Score</div>
+                        <div id="resultScore" class="text-5xl font-bold text-green-400 gaming-font">0</div>
+                    </div>
+                </div>
+                <button onclick="nextPlayerHandler()" id="nextPlayerBtn"
+                    class="w-full py-5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded text-2xl transition border border-purple-500">NEXT
+                    AGENT ⏭</button>
+            </div>
+        </div>
+
+        <div id="screenLeaderboard" class="hidden absolute inset-0 bg-[#000] z-50 p-8 overflow-y-auto">
+            <div class="max-w-6xl mx-auto mt-10">
+                <h1 class="text-6xl text-center font-bold text-white mb-16 gaming-font uppercase tracking-wider">
+                    <span class="text-yellow-500">🏆</span> Final Standings
+                </h1>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div class="bg-[#111827] rounded p-8 border border-slate-800">
+                        <h3
+                            class="text-cyan-400 font-bold mb-6 uppercase tracking-widest border-b border-slate-700 pb-4">
+                            Top Operatives</h3>
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="leaderboardBody" class="text-xl font-medium text-slate-200"></tbody>
+                        </table>
+                    </div>
+                    <div id="teamLeaderboardContainer" class="hidden bg-[#111827] rounded p-8 border border-slate-800">
+                        <h3
+                            class="text-blue-400 font-bold mb-6 uppercase tracking-widest border-b border-slate-700 pb-4">
+                            Top Squads</h3>
+                        <table class="w-full text-left border-collapse">
+                            <tbody id="teamLeaderboardBody" class="text-xl font-medium text-slate-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-8 mt-16 mb-12">
+                    <button onclick="downloadCSV()"
+                        class="px-10 py-5 bg-green-800 hover:bg-green-700 text-white rounded font-bold border border-green-600 text-lg">📥
+                        Export CSV</button>
+                    <button onclick="location.reload()"
+                        class="px-10 py-5 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold border border-slate-600 text-lg">🔄
+                        New Session</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =============================================================
+        //  🛠️ DATA & CONFIGURATION
+        // =============================================================
+
+        // CLASS ROSTER
+        const CLASS_ROSTER = [
+            "ABCD", "USER-NAME", "players", "name"
+        ];
+
+        // =============================================================
+        //  🔥 WORD PACKS (Filtered Hard Words Only)
+        // =============================================================
+
+        const WORD_PACKS = [
+            {
+                id: "round1",
+                title: "🔥 Round 1: कठिन संयुक्त अक्षर (Hard Conjuncts)",
+                content: "प्रज्वल आदर्श विद्यार्थी उज्ज्वल व्यायाम स्वाध्याय अनुशासन शिष्टाचार व्यक्तित्व आत्मविश्वास एकाग्रचित्त तीक्ष्ण बुद्धि जिज्ञासा संस्कृति सत्यनिष्ठा अनिवार्य भविष्य महत्व अध्ययन प्रशंसा"
+            },
+            {
+                id: "round2",
+                title: "🌿 Round 2: 'र' और 'ऋ' का उच्चारण (Tricky Sounds)",
+                content: "पर्यटन शृंखलाओं प्रकृति दृश्य अत्यंत आश्चर्यजनक सूर्य तीव्र वर्षा वृक्ष हृदय ईश्वर प्रार्थना इंद्रधनुष प्रागैतिहासिक अविस्मरणीय रोमांचक पर्यावरण संरक्षण संकल्प भ्रमण"
+            },
+            {
+                id: "round3",
+                title: "👑 Round 3: भारी-भरकम शब्दावली (Heavy Vocabulary)",
+                content: "चक्रवर्ती सम्राट भव्य सुसज्जित प्रज्वलित अंतर्राष्ट्रीय विद्वान आमंत्रित सांस्कृतिक नृत्य नाट्य प्रदर्शन प्रतिज्ञा कल्याण स्वास्थ्य सशक्तीकरण धैर्य शौर्य न्यायप्रियता निरंतर घोषणा"
+            },
+            {
+                id: "round4",
+                title: "🤪 Round 4: जीभ लड़खड़ाने वाले शब्द (Tongue Twisters)",
+                content: "खड़क खड़कती आवाज़ खड़गपुर खड़ूस हँस चाँदनी चौक चम्मच चटनी चटाई पके पपीता पिंकू कच्चा पापड़ पक्का जिह्वा लड़खड़ा समझ नासमझ हँसेगा फँसेगा ऊंट ऊँची"
+            },
+            {
+                id: "round5",
+                title: "🤯 Round 5: कक्षा 8 चुनौती (Class 8 Ultimate)",
+                content: "प्रतिद्वंद्विता औद्योगिकीकरण आधुनिकीकरण क्रियान्वयन जिजीविषा सहिष्णुता सर्वभौमिक कर्तव्यनिष्ठा स्वावलंबन उत्तरदायित्व पुनर्जागरण भूमंडलीकरण सांप्रदायिकता आत्मनिर्भरता व्यवस्थापिका कार्यपालिका न्यायपालिका प्रजातांत्रिक संवेदनशीलता पूर्वाग्रह विरोधाभास समकालीन अभूतपूर्व अविश्वसनीय पारदर्शी अंधविश्वास सर्वशक्तिमान महत्त्वाकांक्षा अंतर्मन सौंदर्यबोध प्रासंगिकता चरितार्थ सर्वोत्कृष्ट दार्शनिक आध्यात्मिक सहस्राब्दी विशेषाधिकार"
+            }
+        ];
+
+        const SENTENCE_PACKS = [
+            { id: "s_story1", title: "📜 Story: सम्राट", content: "चक्रवर्ती सम्राट ने अपने राज्य में एक भव्य उत्सव की घोषणा की। पूरे नगर को सुसज्जित किया गया और हजारों दीपकों को प्रज्वलित किया गया। अंतर्राष्ट्रीय अतिथि और विद्वान भी इस समारोह में आमंत्रित थे। राजा ने प्रतिज्ञा की कि वे प्रजा के कल्याण और स्वास्थ्य के लिए निरंतर कार्य करेंगे। सभी ने राजा के धैर्य और न्यायप्रियता की सराहना की।" },
+            { id: "s_tongue", title: "🤪 Challenge: Tongue Twisters", content: "खड़क सिंह की खड़कती आवाज़ सुनकर खड़गपुर के खड़ूस लोग भी हँस पड़े। चंदू के चाचा ने चाँदनी चौक में चाँदी की चम्मच से चटनी चटाई। पके पेड़ पर पका पपीता, पिंकू ने पकड़ा पका पपीता। समझ-समझ के समझ को समझो, समझ समझना भी एक समझ है।" }
+        ];
+
+
+
+        const streakEmojis = ["🔥", "⚡", "🚀", "💎", "🦁", "🌟", "💣"];
+        const praiseWords = ["Wow!", "Bahut Badhiya!", "Perfect!", "Superb!", "Good Job!", "Excellent!"];
+
+        // State Variables
+        let players = [];
+        let currentPlayerIndex = 0;
+        let gameMode = 'word';
+        let currentContentList = [];
+        let contentIndex = 0;
+        let currentScore = 0;
+        let currentStreak = 0;
+        let currentLives = 3;
+        let maxLives = 3;
+        let isGameRunning = false;
+        let actionLocked = false;
+        let contentTimer = null;
+        let visualTimerInterval = null;
+        let timePerItem = 2000;
+        let isMuted = false;
+        let isTeamMode = false;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // =============================================================
+        //  🔉 AUDIO ENGINE
+        // =============================================================
+
+        window.onload = function () {
+            updateTopicDropdown();
+            populateRoster();
+        };
+
+        function populateRoster() {
+            const select = document.getElementById('rosterSelect');
+            CLASS_ROSTER.sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name; opt.innerText = name;
+                select.appendChild(opt);
+            });
+        }
+
+        function fillFromRoster() {
+            const val = document.getElementById('rosterSelect').value;
+            if (val) {
+                document.getElementById('playerNameInput').value = val;
+            }
+        }
+
+        function playTone(type) {
+            if (isMuted) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const now = audioCtx.currentTime;
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now); osc.frequency.linearRampToValueAtTime(659.25, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'powerup') {
+                // Bonus Life Sound
+                osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'streak') {
+                // Sparkle
+                for (let i = 0; i < 5; i++) {
+                    const sOsc = audioCtx.createOscillator(); const sGain = audioCtx.createGain();
+                    sOsc.connect(sGain); sGain.connect(audioCtx.destination);
+                    sOsc.frequency.value = 1200 + Math.random() * 1000; sOsc.type = 'sine';
+                    const d = Math.random() * 0.2;
+                    sGain.gain.setValueAtTime(0, now + d); sGain.gain.linearRampToValueAtTime(0.05, now + d + 0.05); sGain.gain.linearRampToValueAtTime(0, now + d + 0.2);
+                    sOsc.start(now + d); sOsc.stop(now + d + 0.2);
+                }
+            } else if (type === 'gameover') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(300, now); osc.frequency.linearRampToValueAtTime(100, now + 1);
+                gainNode.gain.setValueAtTime(0.2, now); gainNode.gain.linearRampToValueAtTime(0, now + 1);
+                osc.start(now); osc.stop(now + 1);
+            }
+        }
+
+        // --- SLOW TTS ---
+        function speakPraise() {
+            if (!isMuted && 'speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const word = praiseWords[Math.floor(Math.random() * praiseWords.length)];
+                const utterance = new SpeechSynthesisUtterance(word);
+
+                const voices = window.speechSynthesis.getVoices();
+                const voice = voices.find(v => v.lang.includes('en'));
+                if (voice) utterance.voice = voice;
+
+                utterance.rate = 0.8; // Slow Speed
+                utterance.pitch = 1.1;
+                utterance.volume = 1.0;
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // =============================================================
+        //  ⚙️ GAME LOGIC
+        // =============================================================
+
+        function updateTopicDropdown() {
+            const mode = document.getElementById('gameMode').value;
+            const select = document.getElementById('topicSelect');
+            select.innerHTML = '';
+            const data = mode === 'word' ? WORD_PACKS : SENTENCE_PACKS;
+            data.forEach(d => {
+                const opt = document.createElement('option'); opt.value = d.id; opt.innerText = d.title; select.appendChild(opt);
+            });
+            if (mode === 'word') document.getElementById('timeSetting').value = 2;
+            else document.getElementById('timeSetting').value = 15;
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('muteBtn').innerText = isMuted ? "🔇 MUTED" : "🔊 SOUND ON";
+        }
+
+        function toggleTeamInput() {
+            isTeamMode = document.getElementById('teamModeCheck').checked;
+            const tInput = document.getElementById('teamNameInput');
+            const tBadge = document.getElementById('teamBadge');
+            if (isTeamMode) {
+                tInput.classList.remove('hidden'); tBadge.classList.remove('hidden');
+                document.getElementById('playerNameInput').classList.replace('flex-[2]', 'flex-1');
+            } else {
+                tInput.classList.add('hidden'); tBadge.classList.add('hidden');
+                document.getElementById('playerNameInput').classList.replace('flex-1', 'flex-[2]');
+            }
+        }
+
+        function addPlayer() {
+            const pInput = document.getElementById('playerNameInput');
+            const tInput = document.getElementById('teamNameInput');
+            const name = pInput.value.trim();
+            const team = isTeamMode ? tInput.value.trim() : "Solo";
+
+            if (!name) return;
+            if (isTeamMode && !team) { alert("Please enter Team Name!"); return; }
+
+            players.push({ name: name, team: team, score: 0 });
+            pInput.value = ''; tInput.value = ''; document.getElementById('rosterSelect').value = "";
+            renderLobbyList();
+        }
+
+        function renderLobbyList() {
+            const list = document.getElementById('playerList');
+            const btn = document.getElementById('startBtn');
+            if (players.length === 0) {
+                list.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-slate-600 italic text-sm"><span>No players added yet.</span></div>';
+                btn.disabled = true; btn.classList.add('opacity-30', 'cursor-not-allowed');
+            } else {
+                list.innerHTML = players.map((p, i) => `
+                    <div class="bg-[#1f2937] p-3 rounded flex justify-between px-4 border border-slate-700 items-center animate__animated animate__fadeIn mb-2">
+                        <div class="flex flex-col">
+                            <span class="text-white font-bold text-lg">${p.name}</span>
+                            ${isTeamMode ? `<span class="text-xs text-blue-400 font-bold uppercase">${p.team}</span>` : ''}
+                        </div>
+                        <span class="text-slate-500 font-mono font-bold">#${i + 1}</span>
+                    </div>`).join('');
+                btn.disabled = false; btn.classList.remove('opacity-30', 'cursor-not-allowed');
+            }
+        }
+
+        document.getElementById('playerNameInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') addPlayer(); });
+
+        function startGame() {
+            if (!isMuted && audioCtx.state === 'suspended') audioCtx.resume();
+
+            gameMode = document.getElementById('gameMode').value;
+            const timeInput = document.getElementById('timeSetting').value;
+            timePerItem = (parseInt(timeInput) || 2) * 1000;
+            const lInput = document.getElementById('livesSetting').value;
+            maxLives = parseInt(lInput) || 3;
+
+            const selectedId = document.getElementById('topicSelect').value;
+            let dataPack = (gameMode === 'word') ? WORD_PACKS.find(d => d.id === selectedId) : SENTENCE_PACKS.find(d => d.id === selectedId);
+            const rawText = dataPack ? dataPack.content : "";
+
+            if (gameMode === 'word') {
+                currentContentList = rawText.replace(/[।.,?!]/g, "").split(/\s+/).filter(w => w.length > 0);
+                document.getElementById('readyInstructions').innerHTML = "Controls: 'A' (Ok) | 'F' (Bad)<br><span class='text-yellow-400'>Bonus: +1 Life on 5 Streak!</span>";
+            } else {
+                currentContentList = rawText.split(/[।?!]/g).filter(s => s.trim().length > 0).map(s => s.trim() + "।");
+                document.getElementById('readyInstructions').innerHTML = "Controls: 1-9 (Rate)";
+            }
+
+            document.getElementById('screenLobby').classList.add('hidden');
+            currentPlayerIndex = 0;
+            showReadyScreen();
+        }
+
+        function showReadyScreen() {
+            const p = players[currentPlayerIndex];
+            document.getElementById('readyPlayerName').innerText = p.name;
+            const tDisplay = document.getElementById('readyTeamDisplay');
+            if (isTeamMode) { tDisplay.innerText = p.team; tDisplay.classList.remove('hidden'); }
+            else { tDisplay.classList.add('hidden'); }
+            document.getElementById('screenReady').classList.remove('hidden');
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.add('hidden');
+        }
+
+        function beginRound() {
+            document.getElementById('screenReady').classList.add('hidden');
+            document.getElementById('screenGame').classList.remove('hidden');
+
+            const p = players[currentPlayerIndex];
+            document.getElementById('gamePlayerName').innerText = p.name;
+            const tGameName = document.getElementById('gameTeamName');
+            if (isTeamMode) { tGameName.innerText = p.team; tGameName.classList.remove('hidden'); }
+            else { tGameName.classList.add('hidden'); }
+
+            currentScore = 0; currentStreak = 0; contentIndex = 0; currentLives = maxLives;
+            isGameRunning = true; actionLocked = false;
+
+            document.getElementById('gameScore').innerText = "0";
+            renderLives();
+            showContent();
+        }
+
+        function renderLives() {
+            const container = document.getElementById('livesContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < maxLives; i++) {
+                const heart = document.createElement('span');
+                heart.innerHTML = '❤️';
+                if (i < currentLives) {
+                    heart.className = 'text-2xl heart-icon';
+                } else {
+                    heart.className = 'text-2xl heart-icon heart-lost';
+                }
+                container.appendChild(heart);
+            }
+        }
+
+        function showContent() {
+            if (contentIndex >= currentContentList.length || currentLives <= 0) { endRound(); return; }
+            actionLocked = false;
+            const item = currentContentList[contentIndex];
+            const display = document.getElementById('contentDisplay');
+            const pBar = document.getElementById('progressBar');
+            const timerDisplay = document.getElementById('visualTimer');
+
+            if (gameMode === 'word') display.className = "text-6xl md:text-[9rem] font-bold text-white z-50 animate__animated animate__zoomIn leading-tight drop-shadow-xl";
+            else display.className = "text-3xl md:text-5xl font-semibold text-white leading-relaxed px-4 z-50 animate__animated animate__fadeIn drop-shadow-lg";
+            display.innerText = item;
+
+            pBar.style.transition = 'none'; pBar.style.width = '100%';
+            let remaining = timePerItem / 1000;
+            timerDisplay.innerText = remaining.toFixed(1);
+
+            clearInterval(visualTimerInterval);
+            visualTimerInterval = setInterval(() => {
+                remaining -= 0.1;
+                timerDisplay.innerText = Math.max(0, remaining).toFixed(1);
+            }, 100);
+
+            setTimeout(() => { pBar.style.transition = `width ${timePerItem}ms linear`; pBar.style.width = '0%'; }, 50);
+            clearTimeout(contentTimer);
+            contentTimer = setTimeout(() => { if (isGameRunning) processAction(false, 0, true); }, timePerItem);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!isGameRunning || actionLocked) return;
+            if (e.key.toLowerCase() === 's') { skipItem(); return; }
+            if (gameMode === 'word') {
+                if (e.key.toLowerCase() === 'a') processAction(true);
+                if (e.key.toLowerCase() === 'f') processAction(false);
+            } else {
+                if (e.key >= '1' && e.key <= '9') processAction(true, parseInt(e.key));
+                if (e.key === '0') processAction(true, 10);
+            }
+        });
+
+        function skipItem() { if (isGameRunning) processAction(false, 0, false, true); }
+
+        function processAction(success, scoreVal = 0, isTimeout = false, isSkip = false) {
+            if (actionLocked) return;
+            actionLocked = true;
+            clearTimeout(contentTimer); clearInterval(visualTimerInterval);
+
+            let points = 0; let bgClass = ''; let textToShow = '';
+
+            if (isSkip) {
+                points = 0; bgClass = 'bg-slate-800/80'; textToShow = 'SKIP';
+                currentStreak = 0;
+            } else if (gameMode === 'word') {
+                if (success) {
+                    points = 1; currentStreak++; bgClass = 'bg-green-600/30'; textToShow = '+1';
+                    playTone('correct'); checkStreak();
+                } else {
+                    points = -0.5; currentStreak = 0; bgClass = 'bg-red-600/40'; textToShow = isTimeout ? 'TIMEOUT' : 'FAIL';
+                    playTone('wrong'); triggerShake();
+                    currentLives--; renderLives();
+                }
+            } else {
+                if (isTimeout) {
+                    points = 0; bgClass = 'bg-red-600/40'; textToShow = 'TIME';
+                    playTone('wrong'); triggerShake();
+                } else {
+                    points = scoreVal;
+                    bgClass = points >= 7 ? 'bg-green-600/30' : 'bg-red-600/40';
+                    textToShow = `+${points}`;
+                    playTone('correct');
+                    if (points < 4) triggerShake();
+                }
+            }
+
+            currentScore += points;
+            document.getElementById('gameScore').innerText = currentScore;
+
+            const layer = document.getElementById('feedbackLayer');
+            layer.className = `absolute inset-0 z-0 opacity-100 ${bgClass}`;
+            setTimeout(() => layer.className = "absolute inset-0 z-0 opacity-0 transition-opacity duration-200", 200);
+
+            spawnFloatingText(textToShow, success ? 'text-green-400' : 'text-red-400');
+
+            if (currentLives <= 0) setTimeout(endRound, 500);
+            else { contentIndex++; setTimeout(showContent, 300); }
+        }
+
+        function triggerShake() {
+            const c = document.getElementById('mainContainer');
+            c.classList.remove('shake-screen'); void c.offsetWidth; c.classList.add('shake-screen');
+        }
+
+        function checkStreak() {
+            if (currentStreak > 0 && currentStreak % 5 === 0) {
+                // CONFETTI + SOUND
+                playTone('streak');
+                fireConfetti();
+                speakPraise();
+
+                // BONUS LIFE LOGIC
+                if (currentLives < maxLives) {
+                    currentLives++;
+                    renderLives();
+                    playTone('powerup');
+                    spawnFloatingText("+1 LIFE ❤️", "text-pink-400 text-6xl drop-shadow-[0_0_20px_pink]");
+
+                    const hearts = document.querySelectorAll('.heart-icon');
+                    if (hearts[currentLives - 1]) hearts[currentLives - 1].classList.add('heart-pop');
+                } else {
+                    spawnFloatingText(`${currentStreak} COMBO!`, 'text-yellow-400 text-6xl drop-shadow-md');
+                }
+
+                // Show Emoji animation in center briefly
+                const left = document.getElementById('streakLeft');
+                const right = document.getElementById('streakRight');
+                left.style.display = 'block'; right.style.display = 'block';
+                left.classList.add('animate__animated', 'animate__fadeInLeft');
+                right.classList.add('animate__animated', 'animate__fadeInRight');
+                setTimeout(() => {
+                    left.style.display = 'none'; right.style.display = 'none';
+                    left.classList.remove('animate__animated', 'animate__fadeInLeft');
+                    right.classList.remove('animate__animated', 'animate__fadeInRight');
+                }, 1000);
+            }
+        }
+
+        function fireConfetti() {
+            confetti({ particleCount: 100, spread: 60, origin: { y: 0.7, x: 0.1 }, colors: ['#a855f7', '#0ea5e9'] });
+            confetti({ particleCount: 100, spread: 60, origin: { y: 0.7, x: 0.9 }, colors: ['#a855f7', '#0ea5e9'] });
+        }
+
+        function spawnFloatingText(text, colorClass) {
+            const el = document.createElement('div');
+            el.className = `floating-score ${colorClass}`;
+            el.innerText = text;
+            el.style.left = '50%'; el.style.top = '45%';
+            el.style.marginLeft = `${(Math.random() - 0.5) * 200}px`;
+            el.style.marginTop = `${(Math.random() - 0.5) * 50}px`;
+            document.getElementById('screenGame').appendChild(el);
+            setTimeout(() => el.remove(), 800);
+        }
+
+        function endRound() {
+            isGameRunning = false;
+            players[currentPlayerIndex].score = currentScore;
+
+            const gmMsg = document.getElementById('gameOverMsg');
+            if (currentLives <= 0) {
+                gmMsg.classList.remove('hidden'); playTone('gameover');
+            } else {
+                gmMsg.classList.add('hidden');
+                confetti({ particleCount: 200, spread: 180, origin: { y: 0.6 } });
+            }
+
+            document.getElementById('resultPlayerName').innerText = players[currentPlayerIndex].name;
+            document.getElementById('resultScore').innerText = currentScore;
+            document.getElementById('resultItems').innerText = contentIndex;
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.remove('hidden');
+
+            const btn = document.getElementById('nextPlayerBtn');
+            if (currentPlayerIndex >= players.length - 1) {
+                btn.innerText = "🏆 FINAL RESULTS";
+                btn.className = "w-full py-5 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded-2xl text-2xl transition border-t border-white/20";
+            } else {
+                btn.innerText = "NEXT AGENT ⏭";
+                btn.className = "w-full py-5 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-2xl text-2xl transition border-t border-white/20";
+            }
+        }
+
+        function nextPlayerHandler() {
+            if (currentPlayerIndex >= players.length - 1) { showFinalLeaderboard(); }
+            else { currentPlayerIndex++; showReadyScreen(); }
+        }
+
+        function showFinalLeaderboard() {
+            players.sort((a, b) => b.score - a.score);
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = players.map((p, i) => {
+                let color = "text-slate-300"; let icon = `#${i + 1}`; let rowBg = "";
+                if (i === 0) { color = "text-yellow-400 font-bold"; icon = "👑"; rowBg = "bg-yellow-900/10"; }
+                return `<tr class="border-b border-slate-700 hover:bg-slate-800 transition ${rowBg}">
+                    <td class="p-4 ${color} tracking-wider">${icon}</td>
+                    <td class="p-4 ${color} text-xl">${p.name} ${p.team !== 'Solo' ? '<span class="text-xs text-blue-400 ml-2">[' + p.team + ']</span>' : ''}</td>
+                    <td class="p-4 text-right font-mono ${color} text-2xl">${p.score}</td>
+                </tr>`;
+            }).join('');
+
+            if (isTeamMode) {
+                document.getElementById('teamLeaderboardContainer').classList.remove('hidden');
+                let teamScores = {}; players.forEach(p => { if (!teamScores[p.team]) teamScores[p.team] = 0; teamScores[p.team] += p.score; });
+                let sortedTeams = Object.keys(teamScores).sort((a, b) => teamScores[b] - teamScores[a]);
+                document.getElementById('teamLeaderboardBody').innerHTML = sortedTeams.map((t, i) => `
+                    <tr class="border-b border-slate-700 hover:bg-slate-800 transition ${i === 0 ? 'bg-blue-900/10' : ''}">
+                        <td class="p-4 text-blue-300">#${i + 1}</td>
+                        <td class="p-4 text-white font-bold text-xl">${t}</td>
+                        <td class="p-4 text-right text-blue-300 font-mono text-2xl">${teamScores[t]}</td>
+                    </tr>`).join('');
+            } else { document.getElementById('teamLeaderboardContainer').classList.add('hidden'); }
+
+            document.getElementById('screenResult').classList.add('hidden');
+            document.getElementById('screenLeaderboard').classList.remove('hidden');
+        }
+
+        function downloadCSV() {
+            let csv = "data:text/csv;charset=utf-8,Rank,Name,Team,Score\n";
+            players.forEach((p, i) => { csv += `${i + 1},${p.name},${p.team},${p.score}\n`; });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csv));
+            link.setAttribute("download", "Reading_Battle_Results.csv");
+            document.body.appendChild(link); link.click(); link.remove();
+        }
+    </script>
+</body>
+
+</html>
