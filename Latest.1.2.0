@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reading Battle: Interactive Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700;800&family=Tiro+Devanagari+Hindi&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: { black: '#000000', slate: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Tiro Devanagari Hindi', serif; 
+            background-color: #000; 
+            color: #fff;
+            overflow: hidden;
+            user-select: none;
+        }
+        .gaming-font { font-family: 'Rajdhani', sans-serif; }
+        
+        .solid-panel {
+            background-color: #020617;
+            border: 2px solid #1e293b;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+        }
+
+        .hud-box {
+            background-color: #000;
+            border: 1px solid #334155;
+            color: #fff;
+        }
+
+        .solid-input {
+            background: #0f172a !important;
+            border: 1px solid #334155 !important;
+            color: white !important;
+        }
+
+        #contentDisplay {
+            z-index: 50;
+            position: relative;
+            text-shadow: 2px 2px 0px #000; 
+            line-height: 1.3;
+        }
+
+        /* Streak Popups */
+        @keyframes popSide {
+            0% { transform: scale(0) rotate(45deg); opacity: 0; }
+            50% { transform: scale(1.5) rotate(0deg); opacity: 1; }
+            100% { transform: scale(1.2) rotate(0deg); opacity: 0; }
+        }
+        
+        .streak-emoji {
+            position: absolute;
+            top: 35%;
+            font-size: 7rem;
+            z-index: 40;
+            pointer-events: none;
+            display: none;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+        }
+        #streakLeft { left: 5%; animation: popSide 0.8s forwards; }
+        #streakRight { right: 5%; animation: popSide 0.8s forwards; }
+
+        /* Floating Score */
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+        .floating-score {
+            position: absolute;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 800;
+            font-size: 4rem;
+            animation: floatUp 0.8s ease-out forwards;
+            z-index: 60;
+            pointer-events: none;
+            text-shadow: 3px 3px 0 #000;
+        }
+        
+        .bg-grid {
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        .shake-screen { animation: shake 0.3s ease-in-out; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center bg-black bg-grid overflow-hidden">
+
+    <div id="mainContainer" class="w-full max-w-7xl h-[95vh] solid-panel rounded-xl flex flex-col relative overflow-hidden z-10">
+        
+        <header class="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-black z-30">
+            <h1 class="text-3xl font-bold tracking-widest text-white gaming-font uppercase">
+                Reading <span class="text-cyan-500">Battle</span> <span class="text-xs bg-purple-900 px-2 py-1 rounded text-white ml-2 border border-purple-500">KIDS PRO</span>
+            </h1>
+            <div id="controlsDisplay" class="hidden md:block text-xs font-mono text-slate-400 border border-slate-800 px-3 py-1 rounded bg-slate-900 uppercase">
+                Ready
+            </div>
+        </header>
+
+        <div id="screenLobby" class="flex-1 flex flex-col items-center justify-center p-6 z-20 overflow-y-auto bg-slate-950">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl">
+                <div class="bg-slate-900 p-8 rounded-lg border border-slate-800">
+                    <h2 class="text-purple-400 font-bold mb-6 uppercase tracking-widest text-sm flex items-center gap-2 gaming-font">⚙️ Settings</h2>
+                    <div class="mb-6">
+                        <label class="block text-slate-400 text-xs mb-2 font-bold uppercase">Mode</label>
+                        <select id="gameMode" onchange="updateTopicDropdown()" class="w-full solid-input text-lg p-3 rounded outline-none cursor-pointer">
+                            <option value="word">⚡ Word Rapid Fire (2s)</option>
+                            <option value="sentence">📜 Sentence Flow</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="block text-slate-400 text-xs mb-2 font-bold uppercase">Dataset</label>
+                        <select id="topicSelect" class="w-full solid-input text-lg p-3 rounded outline-none cursor-pointer"></select>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 p-8 rounded-lg border border-slate-800 flex flex-col">
+                    <h2 class="text-cyan-400 font-bold mb-6 uppercase tracking-widest text-sm flex items-center gap-2 gaming-font">👥 Players</h2>
+                    <div class="flex gap-3 mb-4">
+                        <input type="text" id="playerNameInput" placeholder="Name..." autocomplete="off" class="flex-1 solid-input text-lg p-3 rounded outline-none placeholder-slate-600">
+                        <button onclick="addPlayer()" class="bg-cyan-700 hover:bg-cyan-600 text-white px-6 rounded font-bold transition border border-cyan-500">ADD</button>
+                    </div>
+                    <div id="playerList" class="flex-1 bg-black rounded border border-slate-800 overflow-y-auto h-40 p-3 space-y-2">
+                        <p class="text-slate-600 text-center text-sm mt-12 italic">No players added.</p>
+                    </div>
+                </div>
+            </div>
+            <button onclick="startGame()" id="startBtn" class="mt-10 px-16 py-5 bg-purple-700 hover:bg-purple-600 text-white font-bold text-xl rounded shadow-lg border-b-4 border-purple-900 active:border-b-0 active:translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>START GAME</button>
+        </div>
+
+        <div id="screenReady" class="hidden absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
+            <h3 class="text-slate-500 text-xl gaming-font tracking-[0.5em] mb-4 uppercase">GET READY</h3>
+            <h1 id="readyPlayerName" class="text-8xl font-black text-white mb-8 uppercase tracking-tighter">PLAYER</h1>
+            <div class="bg-slate-900 px-8 py-6 rounded border border-slate-700 mb-10 max-w-lg text-center">
+                <p id="readyInstructions" class="text-slate-300 font-mono text-lg">Loading...</p>
+            </div>
+            <button onclick="beginRound()" class="px-12 py-5 border-2 border-purple-600 text-purple-400 hover:bg-purple-600 hover:text-white font-bold text-2xl rounded transition-all gaming-font tracking-widest">GO! 🚀</button>
+        </div>
+
+        <div id="screenGame" class="hidden flex-1 flex flex-col relative z-10 bg-black">
+            <div id="feedbackLayer" class="absolute inset-0 z-0 pointer-events-none opacity-0"></div>
+            <div id="streakLeft" class="streak-emoji -translate-y-1/2">🔥</div>
+            <div id="streakRight" class="streak-emoji -translate-y-1/2">🔥</div>
+
+            <div class="flex justify-between items-start px-8 py-6 z-20 relative">
+                <div class="hud-box px-6 py-3 rounded">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Player</span>
+                    <h2 id="gamePlayerName" class="text-3xl font-bold text-cyan-400 leading-none">Name</h2>
+                </div>
+                <div class="absolute left-1/2 -translate-x-1/2 top-4">
+                    <div id="visualTimer" class="text-8xl font-mono font-bold text-white tabular-nums drop-shadow-md">0.0</div>
+                </div>
+                <div class="hud-box px-6 py-3 rounded text-right">
+                    <span class="text-[10px] text-slate-500 uppercase tracking-widest font-bold block mb-1">Score</span>
+                    <h2 id="gameScore" class="text-5xl font-bold text-yellow-400 gaming-font leading-none">0</h2>
+                </div>
+            </div>
+
+            <div class="flex-1 flex items-center justify-center relative px-4 w-full">
+                <div id="contentDisplay" class="font-bold text-white transition-all text-center select-none w-full break-words">Loading...</div>
+            </div>
+
+            <div class="h-3 bg-slate-800 w-full z-20 mt-auto border-t border-slate-700">
+                <div id="progressBar" class="h-full bg-gradient-to-r from-cyan-600 to-blue-600 w-full"></div>
+            </div>
+        </div>
+
+        <div id="screenResult" class="hidden absolute inset-0 bg-black z-50 flex flex-col items-center justify-center">
+            <div class="bg-slate-900 p-10 rounded-xl border border-slate-700 text-center w-full max-w-lg relative">
+                <h2 class="text-xl text-slate-500 mb-2 gaming-font uppercase tracking-widest">Report</h2>
+                <h1 id="resultPlayerName" class="text-6xl font-black text-white mb-8">-</h1>
+                <div class="grid grid-cols-2 gap-4 mb-8">
+                    <div class="bg-black p-4 rounded border border-slate-800">
+                        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Items</div>
+                        <div id="resultItems" class="text-4xl font-bold text-cyan-400">0</div>
+                    </div>
+                    <div class="bg-black p-4 rounded border border-slate-800">
+                        <div class="text-xs text-slate-500 uppercase font-bold mb-2">Score</div>
+                        <div id="resultScore" class="text-4xl font-bold text-green-400 gaming-font">0</div>
+                    </div>
+                </div>
+                <button onclick="nextPlayerHandler()" id="nextPlayerBtn" class="w-full py-4 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded text-xl transition border border-purple-600">NEXT AGENT ⏭</button>
+            </div>
+        </div>
+
+        <div id="screenLeaderboard" class="hidden absolute inset-0 bg-black z-50 p-6 overflow-y-auto">
+            <div class="max-w-4xl mx-auto mt-10">
+                <h1 class="text-5xl text-center font-bold text-white mb-10 gaming-font uppercase tracking-wider">
+                    <span class="text-yellow-500">🏆</span> Final Standings
+                </h1>
+                <div class="bg-slate-900 rounded-xl p-8 border border-slate-800">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-slate-500 border-b border-slate-800 text-xs uppercase tracking-widest">
+                                <th class="p-4 font-bold pb-4">Rank</th>
+                                <th class="p-4 font-bold pb-4">Name</th>
+                                <th class="p-4 text-right font-bold pb-4">Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody" class="text-2xl font-medium text-slate-200"></tbody>
+                    </table>
+                </div>
+                <div class="flex justify-center gap-6 mt-12 mb-10">
+                    <button onclick="downloadCSV()" class="px-8 py-4 bg-green-800 hover:bg-green-700 text-white rounded font-bold border border-green-600">📥 Export CSV</button>
+                    <button onclick="location.reload()" class="px-8 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded font-bold border border-slate-600">🔄 Restart</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const WORD_PACKS = [
+            { id: "w_hard", title: "🔥 Level 1: Hard Words", content: "सुसज्जित प्रज्वलित अंतर्राष्ट्रीय सांस्कृतिक सशक्तीकरण न्यायप्रियता धैर्य शौर्य प्रदर्शन आमंत्रण विद्वान घोषणा चक्रवर्ती निरंतर कल्याण साम्राज्य प्रतिष्ठा अनुशासन आशीर्वाद विश्लेषण" },
+            { id: "w_mixed", title: "🌟 Level 2: Mixed", content: "विद्यालय परिश्रम उपलब्धि विद्यार्थी पुस्तकालय वातावरण वैज्ञानिक आविष्कार अंतरिक्ष अनुसंधान प्रकृति पर्यावरण प्रदूषण जनसंख्या लोकतंत्र संविधान स्वतंत्रता अधिकार कर्तव्य नागरिक" }
+        ];
+        const SENTENCE_PACKS = [
+            { id: "s_story1", title: "📜 Story: सम्राट", content: "चक्रवर्ती सम्राट ने अपने राज्य में एक भव्य उत्सव की घोषणा की। पूरे नगर को सुसज्जित किया गया और हजारों दीपकों को प्रज्वलित किया गया। अंतर्राष्ट्रीय अतिथि और विद्वान भी इस समारोह में आमंत्रित थे। राजा ने प्रतिज्ञा की कि वे प्रजा के कल्याण और स्वास्थ्य के लिए निरंतर कार्य करेंगे। सभी ने राजा के धैर्य और न्यायप्रियता की सराहना की।" },
+            { id: "s_tongue", title: "🤪 Challenge: Tongue Twisters", content: "खड़क सिंह की खड़कती आवाज़ सुनकर खड़गपुर के खड़ूस लोग भी हँस पड़े। चंदू के चाचा ने चाँदनी चौक में चाँदी की चम्मच से चटनी चटाई। पके पेड़ पर पका पपीता, पिंकू ने पकड़ा पका पपीता। समझ-समझ के समझ को समझो, समझ समझना भी एक समझ है।" }
+        ];
+
+        // --- VARS ---
+        const streakEmojis = ["🔥", "⚡", "🚀", "💎", "🦁", "🌟", "💣"];
+        // Voice Praise Words
+        const praiseWords = ["Wow!", "Amazing!", "Perfect!", "Superb!", "Good Job!", "Excellent!", "Fantastic!"];
+
+        let players = [];
+        let currentPlayerIndex = 0;
+        let gameMode = 'word';
+        let currentContentList = [];
+        let contentIndex = 0;
+        let currentScore = 0;
+        let currentStreak = 0;
+        let isGameRunning = false;
+        let actionLocked = false;
+        let contentTimer = null;
+        let visualTimerInterval = null;
+        let timePerItem = 2000;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        window.onload = function() { updateTopicDropdown(); };
+
+        // --- CONFETTI FUNCTION ---
+        function fireConfetti() {
+            // Blast from left
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6, x: 0.1 },
+                colors: ['#a855f7', '#0ea5e9', '#facc15', '#ffffff'],
+                zIndex: 100
+            });
+            // Blast from right
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6, x: 0.9 },
+                colors: ['#a855f7', '#0ea5e9', '#facc15', '#ffffff'],
+                zIndex: 100
+            });
+        }
+
+        // --- VOICE FUNCTION ---
+        function speakPraise() {
+            if ('speechSynthesis' in window) {
+                // Cancel previous speech to avoid overlapping
+                window.speechSynthesis.cancel();
+                
+                const word = praiseWords[Math.floor(Math.random() * praiseWords.length)];
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.rate = 1.2; // A bit faster (excited)
+                utterance.pitch = 1.2; // A bit higher (happy)
+                utterance.volume = 1.0;
+                
+                // Try to find a good English voice
+                const voices = window.speechSynthesis.getVoices();
+                const engVoice = voices.find(v => v.lang.includes('en'));
+                if(engVoice) utterance.voice = engVoice;
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function updateTopicDropdown() {
+            const mode = document.getElementById('gameMode').value;
+            const select = document.getElementById('topicSelect');
+            select.innerHTML = '';
+            const data = mode === 'word' ? WORD_PACKS : SENTENCE_PACKS;
+            data.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.innerText = d.title;
+                select.appendChild(opt);
+            });
+        }
+
+        function playTone(type) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const now = audioCtx.currentTime;
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, now);
+                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 0.2);
+                gainNode.gain.setValueAtTime(0.15, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'streak') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.linearRampToValueAtTime(800, now + 0.3);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            }
+        }
+
+        function addPlayer() {
+            const input = document.getElementById('playerNameInput');
+            const name = input.value.trim();
+            if(!name || players.some(p => p.name === name)) return;
+            players.push({name: name, score: 0});
+            input.value = '';
+            input.focus();
+            renderLobbyList();
+        }
+
+        function renderLobbyList() {
+            const list = document.getElementById('playerList');
+            const btn = document.getElementById('startBtn');
+            if(players.length === 0) {
+                list.innerHTML = '<p class="text-slate-600 text-center text-sm mt-12 italic">Waiting for players...</p>';
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                list.innerHTML = players.map((p,i) => `
+                    <div class="bg-black p-3 rounded flex justify-between px-4 border border-slate-800 items-center animate__animated animate__fadeIn">
+                        <span class="text-slate-500 font-mono font-bold">#${i+1}</span>
+                        <span class="text-white font-bold text-lg">${p.name}</span>
+                    </div>`).join('');
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+        
+        document.getElementById('playerNameInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') addPlayer(); });
+
+        function startGame() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            gameMode = document.getElementById('gameMode').value;
+            const selectedId = document.getElementById('topicSelect').value;
+            let dataPack = (gameMode === 'word') ? WORD_PACKS.find(d => d.id === selectedId) : SENTENCE_PACKS.find(d => d.id === selectedId);
+            const rawText = dataPack ? dataPack.content : "";
+
+            if(gameMode === 'word') {
+                currentContentList = rawText.replace(/[।.,?!]/g, "").split(/\s+/).filter(w => w.length > 0);
+                timePerItem = 2000;
+                document.getElementById('controlsDisplay').innerText = "Controls: 'A' (Right) | 'F' (Wrong)";
+                document.getElementById('readyInstructions').innerHTML = "Controls:<br><span class='text-green-400 font-bold'>'A' = Correct</span> | <span class='text-red-400 font-bold'>'F' = Wrong</span>";
+            } else {
+                currentContentList = rawText.split(/[।?!]/g).filter(s => s.trim().length > 0).map(s => s.trim() + "।");
+                timePerItem = 15000;
+                document.getElementById('controlsDisplay').innerText = "Controls: 1-9 (Score), 0 (10)";
+                document.getElementById('readyInstructions').innerHTML = "Controls:<br>Rate quality <span class='text-yellow-400 font-bold'>1-9</span> (0 for 10)";
+            }
+
+            document.getElementById('screenLobby').classList.add('hidden');
+            currentPlayerIndex = 0;
+            showReadyScreen();
+        }
+
+        function showReadyScreen() {
+            const p = players[currentPlayerIndex];
+            document.getElementById('readyPlayerName').innerText = p.name;
+            document.getElementById('screenReady').classList.remove('hidden');
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.add('hidden');
+        }
+
+        function beginRound() {
+            document.getElementById('screenReady').classList.add('hidden');
+            document.getElementById('screenGame').classList.remove('hidden');
+            document.getElementById('gamePlayerName').innerText = players[currentPlayerIndex].name;
+            currentScore = 0; currentStreak = 0; contentIndex = 0;
+            isGameRunning = true; actionLocked = false;
+            document.getElementById('gameScore').innerText = "0";
+            showContent();
+        }
+
+        function showContent() {
+            if(contentIndex >= currentContentList.length) { endRound(); return; }
+            actionLocked = false;
+            const item = currentContentList[contentIndex];
+            const display = document.getElementById('contentDisplay');
+            const pBar = document.getElementById('progressBar');
+            const timerDisplay = document.getElementById('visualTimer');
+
+            if(gameMode === 'word') display.className = "text-6xl md:text-[8rem] font-bold text-white z-50 animate__animated animate__zoomIn leading-tight drop-shadow-md";
+            else display.className = "text-3xl md:text-5xl font-semibold text-white leading-relaxed px-4 z-50 animate__animated animate__fadeIn drop-shadow-sm";
+            display.innerText = item;
+
+            pBar.style.transition = 'none'; pBar.style.width = '100%';
+            let remaining = timePerItem / 1000;
+            timerDisplay.innerText = remaining.toFixed(1);
+            timerDisplay.className = "text-8xl font-mono font-bold text-white tabular-nums";
+
+            clearInterval(visualTimerInterval);
+            visualTimerInterval = setInterval(() => {
+                remaining -= 0.1;
+                timerDisplay.innerText = Math.max(0, remaining).toFixed(1);
+                if(remaining <= 3) timerDisplay.className = "text-8xl font-mono font-bold text-red-500 tabular-nums animate-pulse";
+            }, 100);
+
+            setTimeout(() => { pBar.style.transition = `width ${timePerItem}ms linear`; pBar.style.width = '0%'; }, 50);
+            clearTimeout(contentTimer);
+            contentTimer = setTimeout(() => { if(isGameRunning) processAction(false, 0, true); }, timePerItem);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(!isGameRunning || actionLocked) return;
+            if(gameMode === 'word') {
+                if(e.key.toLowerCase() === 'a') processAction(true);
+                if(e.key.toLowerCase() === 'f') processAction(false);
+            } else {
+                if(e.key >= '1' && e.key <= '9') processAction(true, parseInt(e.key));
+                if(e.key === '0') processAction(true, 10);
+            }
+        });
+
+        function processAction(success, scoreVal = 0, isTimeout = false) {
+            if(actionLocked) return;
+            actionLocked = true;
+            clearTimeout(contentTimer);
+            clearInterval(visualTimerInterval);
+
+            let points = 0; let bgClass = ''; let textToShow = '';
+
+            if(gameMode === 'word') {
+                if(success) {
+                    points = 1; currentStreak++; bgClass = 'bg-green-900/40'; textToShow = '+1';
+                    playTone('correct');
+                    checkStreak();
+                } else {
+                    points = -0.5; currentStreak = 0; bgClass = 'bg-red-900/40'; textToShow = isTimeout ? 'Time Up' : '-0.5';
+                    playTone('wrong'); triggerShake();
+                }
+            } else {
+                if(isTimeout) {
+                    points = 0; bgClass = 'bg-red-900/40'; textToShow = 'Time Up';
+                    playTone('wrong'); triggerShake();
+                } else {
+                    points = scoreVal;
+                    bgClass = points >= 7 ? 'bg-green-900/40' : (points >= 4 ? 'bg-yellow-900/40' : 'bg-red-900/40');
+                    textToShow = `+${points}`;
+                    playTone('correct');
+                    if(points < 4) triggerShake();
+                }
+            }
+
+            currentScore += points;
+            document.getElementById('gameScore').innerText = currentScore;
+            const layer = document.getElementById('feedbackLayer');
+            layer.className = `absolute inset-0 z-0 opacity-100 ${bgClass}`;
+            setTimeout(() => layer.className = "absolute inset-0 z-0 opacity-0 transition-opacity duration-200", 200);
+            spawnFloatingText(textToShow, success ? 'text-green-400' : 'text-red-400');
+            contentIndex++;
+            setTimeout(showContent, 300);
+        }
+
+        function triggerShake() {
+            const c = document.getElementById('mainContainer');
+            c.classList.remove('shake-screen');
+            void c.offsetWidth;
+            c.classList.add('shake-screen');
+        }
+
+        function checkStreak() {
+            if(currentStreak > 0 && currentStreak % 5 === 0) {
+                // 1. Play Tone
+                playTone('streak');
+                
+                // 2. Fire Confetti (Visual)
+                fireConfetti();
+
+                // 3. Speak Praise (Audio)
+                speakPraise();
+
+                // 4. Show Emoji & Text
+                const emoji = streakEmojis[Math.floor(Math.random() * streakEmojis.length)];
+                const left = document.getElementById('streakLeft');
+                const right = document.getElementById('streakRight');
+                left.innerText = emoji; right.innerText = emoji;
+                left.style.display = 'block'; right.style.display = 'block';
+                
+                left.style.animation = 'none'; right.style.animation = 'none';
+                void left.offsetWidth; void right.offsetWidth;
+                left.style.animation = 'popSide 0.8s forwards';
+                right.style.animation = 'popSide 0.8s forwards';
+
+                spawnFloatingText(`${currentStreak} STREAK!`, 'text-yellow-400 text-6xl drop-shadow-md');
+            }
+        }
+
+        function spawnFloatingText(text, colorClass) {
+            const el = document.createElement('div');
+            el.className = `floating-score ${colorClass}`;
+            el.innerText = text;
+            el.style.left = '50%'; el.style.top = '50%';
+            el.style.marginLeft = `${(Math.random() - 0.5) * 150}px`;
+            el.style.marginTop = `${(Math.random() - 0.5) * 50}px`;
+            document.getElementById('screenGame').appendChild(el);
+            setTimeout(() => el.remove(), 600);
+        }
+
+        function endRound() {
+            isGameRunning = false;
+            players[currentPlayerIndex].score = currentScore;
+            
+            // Celebration Confetti on completion
+            confetti({ particleCount: 150, spread: 180, origin: { y: 0.6 } });
+
+            document.getElementById('resultPlayerName').innerText = players[currentPlayerIndex].name;
+            document.getElementById('resultScore').innerText = currentScore;
+            document.getElementById('resultItems').innerText = currentContentList.length;
+            document.getElementById('screenGame').classList.add('hidden');
+            document.getElementById('screenResult').classList.remove('hidden');
+
+            const btn = document.getElementById('nextPlayerBtn');
+            if(currentPlayerIndex >= players.length - 1) {
+                btn.innerText = "🏆 FINAL RESULTS";
+                btn.className = "w-full py-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded text-xl transition border border-yellow-500";
+            } else {
+                btn.innerText = "NEXT AGENT ⏭";
+                btn.className = "w-full py-4 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded text-xl transition border border-purple-600";
+            }
+        }
+
+        function nextPlayerHandler() {
+            if(currentPlayerIndex >= players.length - 1) { showFinalLeaderboard(); } 
+            else { currentPlayerIndex++; showReadyScreen(); }
+        }
+
+        function showFinalLeaderboard() {
+            players.sort((a,b) => b.score - a.score);
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = players.map((p, i) => {
+                let color = "text-slate-300"; let icon = `#${i+1}`; let rowBg = "";
+                if(i===0) { color="text-yellow-400 font-bold"; icon="👑"; rowBg="bg-yellow-900/10"; }
+                if(i===1) { color="text-slate-200 font-bold"; icon="🥈"; }
+                if(i===2) { color="text-orange-400 font-bold"; icon="🥉"; }
+                return `<tr class="border-b border-slate-800 hover:bg-slate-800 transition ${rowBg}">
+                    <td class="p-4 ${color} tracking-widest">${icon}</td>
+                    <td class="p-4 ${color} text-xl">${p.name}</td>
+                    <td class="p-4 text-right font-mono ${color} text-3xl">${p.score}</td>
+                </tr>`;
+            }).join('');
+            document.getElementById('screenResult').classList.add('hidden');
+            document.getElementById('screenLeaderboard').classList.remove('hidden');
+            
+            // Final Fireworks
+            var duration = 3000;
+            var end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        function downloadCSV() {
+            let csv = "data:text/csv;charset=utf-8,Rank,Name,Score\n";
+            players.forEach((p, i) => { csv += `${i+1},${p.name},${p.score}\n`; });
+            const link = document.createElement("a");
+            link.setAttribute("href", encodeURI(csv));
+            link.setAttribute("download", "Reading_Battle_Results.csv");
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        }
+    </script>
+</body>
+</html>
